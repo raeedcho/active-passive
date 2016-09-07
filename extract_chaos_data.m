@@ -8,10 +8,13 @@ filename = 'C:\Users\rhc307\Documents\Data\ForceKin\Data\Arthur_S1_016-s.plx';
 labnum = 2;
 bdf = get_plexon_data(filename,labnum);
 
-plot(bdf.pos(:,2),bdf.pos(:,3))
+% plot(bdf.pos(:,2),bdf.pos(:,3))
 
 %%
 [fr,thv,thf] = obs_window_pds(bdf);
+
+scatter(thf,thv,'o')
+set(gca,'xlim',[-pi pi],'ylim',[-pi pi])
 
 %%
 close all

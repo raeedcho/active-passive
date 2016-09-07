@@ -25,7 +25,7 @@ end
 
 % Select the paths that we're going to use
 lMin = 3; % minimum path length
-maxLenRat = 1.25; % maximum ratio of displacement to path length
+maxLenRat = 1.5; % maximum ratio of displacement to path length
 kMax = 1; % maximum peak curvature
 
 keepers = true(size(iStart));
