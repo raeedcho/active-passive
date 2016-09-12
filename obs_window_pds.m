@@ -1,7 +1,7 @@
 function [fr,thv,thf] = obs_window_pds(bdf)
 
 % set window radius
-Wr = 3;
+Wr = 5;
 
 % extract time and position signals
 t = bdf.pos(:,1);
@@ -26,7 +26,7 @@ end
 % Select the paths that we're going to use
 lMin = 3; % minimum path length
 maxLenRat = 1.5; % maximum ratio of displacement to path length
-kMax = 1; % maximum peak curvature
+kMax = 2; % maximum peak curvature
 
 keepers = true(size(iStart));
 for i = 1:length(keepers)
@@ -84,28 +84,28 @@ for uid = 1:length(unit_list(bdf))
     %phi = pi/2; % cutoff plane to separate movements
     %vdf = thv < phi & thv > (phi - pi); % velocity direction filter
 
-    [xx, yy] = meshgrid(-pi:pi/10:pi, -pi:pi/10:pi);
-    gx = zeros(size(xx));
-    gp = zeros(size(xx));
-    sig = .5;
-    for offsetx = -2:2
-        for offsety = -2:2
-            dx = 2*pi*offsetx;
-            dy = 2*pi*offsety;
-            for i = 1:length(thf)
-                gx = gx + la(i) * exp( -sqrt((thf(i)-xx-dx).^2 + (thv(i)-yy-dy).^2) / 2 / sig.^2 );
-                gp = gp + exp( -sqrt((thf(i)-xx-dx).^2 + (thv(i)-yy-dy).^2) / 2 / sig.^2 );
-            end
-        end
-    end
-    srf = gx ./ gp;
-
-    figure; plot3(thf, thv, la, 'k.');
-    hold on;
-    mesh(xx,yy,srf);
-    xlabel('Force Direction');
-    ylabel('Velocity Direction');
-    zlabel('Firing Rate');
-    title(sprintf('Neuron %d', uid));
+%     [xx, yy] = meshgrid(-pi:pi/10:pi, -pi:pi/10:pi);
+%     gx = zeros(size(xx));
+%     gp = zeros(size(xx));
+%     sig = .5;
+%     for offsetx = -2:2
+%         for offsety = -2:2
+%             dx = 2*pi*offsetx;
+%             dy = 2*pi*offsety;
+%             for i = 1:length(thf)
+%                 gx = gx + la(i) * exp( -sqrt((thf(i)-xx-dx).^2 + (thv(i)-yy-dy).^2) / 2 / sig.^2 );
+%                 gp = gp + exp( -sqrt((thf(i)-xx-dx).^2 + (thv(i)-yy-dy).^2) / 2 / sig.^2 );
+%             end
+%         end
+%     end
+%     srf = gx ./ gp;
+% 
+%     figure; plot3(thf, thv, la, 'k.');
+%     hold on;
+%     mesh(xx,yy,srf);
+%     xlabel('Force Direction');
+%     ylabel('Velocity Direction');
+%     zlabel('Firing Rate');
+%     title(sprintf('Neuron %d', uid));
 
 end % foreach unit
