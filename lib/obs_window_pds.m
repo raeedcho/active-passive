@@ -51,6 +51,11 @@ for i = 1:length(keepers)
         k=inf;
     end
     keepers(i) = keepers(i) & max(abs(k)) < kMax;
+    
+    % Reject paths that occur outside of a trial
+%     trialSuccess = cds.trials(srcmp(cds.trials.result,'R'),:);
+    logicalTrialNum = cds.trials.startTime<t(iStart(i)) & cds.trials.endTime>t(iStart(i)) & cds.trials.startTime<t(iStop(i)) & cds.trials.endTime>t(iStop(i));
+    keepers(i) = sum(logicalTrialNum)==1;
 end
 
 % Plot all paths to inspect our selection algorithm
@@ -67,6 +72,7 @@ for i = 1:length(iStart)
     plot(Wr*cos(th)+offsetx, Wr*sin(th)+offsety, 'Color', [.5 .5 .5]);
 end
 axis equal;
+axis off;
 
 % Dump all the rejected trajectories
 iStart = iStart(keepers);
@@ -81,7 +87,9 @@ for i = 1:length(thv)
     thf(i) = atan2( mean(f(iStart(i):iStop(i),2)), mean(f(iStart(i):iStop(i),1)) );
 end
 figure;plot(thf,thv,'o')
-
+set(gca,'box','off','tickdir','out','xtick',[-pi 0 pi],'ytick',[-pi 0 pi],'xticklabel',{'-\pi','0','\pi'},'yticklabel',{'-\pi','0','\pi'})
+xlabel('Force Direction')
+ylabel('Velocity Direction')
 fr = [];
 
 % Plot the tuning curves
