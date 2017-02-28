@@ -1,7 +1,7 @@
 function forceKinPathSetup
 
 if(ispc)
-    homeFolder = 'C:\Users\rhc307\';
+    homeFolder = 'C:\Users\Raeed\';
 else
     homeFolder = '/home/raeed/';
 end
