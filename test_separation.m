@@ -60,8 +60,8 @@ nanners = isnan(cat(1,td_act.target_direction));
 td_act = td_act(~nanners);
 
 % Trial average
-td_act = trialAverage(td_act,{'target_direction'});
-td_pas = trialAverage(td_pas,{'bumpDir'});
+% td_act = trialAverage(td_act,{'target_direction'});
+% td_pas = trialAverage(td_pas,{'bumpDir'});
 
 % plot active as filled, passive as open
 bump_colors = linspecer(4);
