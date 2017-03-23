@@ -34,7 +34,7 @@ OOR_cds.file2cds([folder filesep fname_prefix extra_OOR_fname],ranBy,array,monke
 
 %% Extract trial data from cds files
 params.array_alias = {'LeftS1Area2','S1'};
-params.exclude_units = [255];
+% params.exclude_units = [255];
 params.event_list = {'ctrHoldBump';'bumpTime';'bumpDir'};
 params.trial_results = {'R','A','F','I'};
 meta = struct('task','COactpas');

@@ -5,12 +5,16 @@ td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_en
 %% Get PCA for act vs pas
 
 [~,td] = getTDidx(trial_data_actpas,'result','R');
+td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime'));
 
 [~,td_act] = getTDidx(td,'ctrHoldBump',false);
-td_act = truncateAndBin(td_act,12,{'idx_goCueTime',35},{'idx_goCueTime',50});
+% td_act = trimTD(td_act,{'idx_goCueTime',35},{'idx_goCueTime',50});
+td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',15});
+td_act = binTD(td_act,15);
 
 [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-td_pas = truncateAndBin(td_pas,12,{'idx_bumpTime',0},{'idx_bumpTime',15});
+td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',15});
+td_pas = binTD(td_pas,15);
 td = cat(2,td_act,td_pas);
 
 % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
@@ -42,10 +46,10 @@ axis equal
 [~,td] = getTDidx(trial_data_actpas,'result','R');
 
 [~,td_act] = getTDidx(td,'ctrHoldBump',false);
-td_act = truncateAndBin(td_act,1,{'idx_goCueTime',35},{'idx_goCueTime',50});
+td_act = trimTD(td_act,{'idx_goCueTime',35},{'idx_goCueTime',50});
 
 [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-td_pas = truncateAndBin(td_pas,1,{'idx_bumpTime',0},{'idx_bumpTime',15});
+td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',15});
 td = cat(2,td_act,td_pas);
 
 td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
