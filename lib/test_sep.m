@@ -58,3 +58,4 @@ figure
 hold all
 scatter(S1_pca_act*w,1:length(S1_pca_act),50,bump_colors(act_dir_idx,:),'filled')
 scatter(S1_pca_pas*w,1:length(S1_pca_pas),50,bump_colors(pas_dir_idx,:))
+set(gca,'box','off','tickdir','out')

@@ -37,7 +37,7 @@ for uid = 1:size(fr,2)
     title(sprintf('Neuron %d', uid));
     
     if savefigs
-        saveas(h,['C:\Users\rhc307\Projects\limblab\data-raeed\ForceKin\Han\20170203\Figures\Tesselate\Neuron_' num2str(uid) '.png'])
+        saveas(h,['C:\Users\rhc307\Projects\limblab\data-raeed\ForceKin\Han\20170203\Figures\Tesselate_fineLin\Neuron_' num2str(uid) '.png'])
     end
 %     
 %     close(h)

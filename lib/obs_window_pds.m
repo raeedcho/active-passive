@@ -90,10 +90,10 @@ for i = 1:length(thv)
     thf(i) = atan2( mean(f(iStart(i):iStop(i),2)), mean(f(iStart(i):iStop(i),1)) );
     fr(i,:) = sum(binned_fr(iStart(i):iStop(i),:),1)/((iStop(i)-iStart(i))*td(1).bin_size);
 end
-% figure;plot(thf,thv,'o')
-% set(gca,'box','off','tickdir','out','xtick',[-pi 0 pi],'ytick',[-pi 0 pi],'xticklabel',{'-\pi','0','\pi'},'yticklabel',{'-\pi','0','\pi'})
-% xlabel('Force Direction')
-% ylabel('Velocity Direction')
+figure;plot(thf,thv,'o')
+set(gca,'box','off','tickdir','out','xtick',[-pi 0 pi],'ytick',[-pi 0 pi],'xticklabel',{'-\pi','0','\pi'},'yticklabel',{'-\pi','0','\pi'})
+xlabel('Force Direction')
+ylabel('Velocity Direction')
 
 % Plot the tuning curves
 % fr = zeros(length(iStart),length(unit_list(cds)));
