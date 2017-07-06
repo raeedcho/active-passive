@@ -15,7 +15,7 @@ ranBy='ranByRaeed';
 monkey=['monkey' monkey];
 array='arrayLeftS1Area2';
 folder=[root_folder 'preCDS'];
-mapfile='mapFileC:\Users\rhc307\Projects\limblab\data-raeed\ForceKin\OutOutReach\Han\mapfile\left_S1\SN 6251-001459.cmp';
+mapfile='mapFileC:\Users\rhc307\Projects\limblab\data-raeed\ForceKin\Han\mapfile\left_S1\SN 6251-001459.cmp';
 
 actpas_fname =  '_COactpas_area2EMG_001';
 OOR_fname =     '_OOR_25N_area2EMG_002';

@@ -4,11 +4,11 @@ function [separability,sep_train] = test_sep(td)
 [~,td] = getTDidx(td,'result','R');
 
 % get movement onset
-td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime'));
+td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
 
 % extract relevant times
 [~,td_act] = getTDidx(td,'ctrHoldBump',false);
-td_act = trimTD(td_act,{'idx_goCueTime',35},{'idx_goCueTime',50});
+td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',15});
 % td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',15});
 td_act = binTD(td_act,15);
 

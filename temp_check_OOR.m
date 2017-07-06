@@ -19,24 +19,24 @@ csvwrite([folder 'Han_20170203_OOR_resid_lin.csv'],[thv thf resid_lin])
 csvwrite([folder 'Han_20170203_OOR_resid_nonlin.csv'],[thv thf resid_non])
 
 %% try removing nonlinear force-velocity combination
-[~,td] = getTDidx(trial_data_OOR,'result','R');
-
-[fr,thv,thf] = obs_window_pds(td);
-
-% get linear models
-[lin_models] = get_lin_models(fr,thv,thf);
-
-% fit active/passive stuff
-[~,td_actpas] = getTDidx(trial_data_actpas,'result','R');
-
-% test separability of original actpas
-[sep_actual,sep_train_actual] = test_sep(td_actpas);
-
-% predict td from models
-td_actpas_pred = predict_td_from_models(td_actpas,lin_models);
-
-% test separability of lin model
-[sep_pred, sep_train_pred] = test_sep(td_actpas_pred);
+% [~,td] = getTDidx(trial_data_OOR,'result','R');
+% 
+% [fr,thv,thf] = obs_window_pds(td);
+% 
+% % get linear models
+% [lin_models] = get_lin_models(fr,thv,thf);
+% 
+% % fit active/passive stuff
+% [~,td_actpas] = getTDidx(trial_data_actpas,'result','R');
+% 
+% % test separability of original actpas
+% [sep_actual,sep_train_actual] = test_sep(td_actpas);
+% 
+% % predict td from models
+% td_actpas_pred = predict_td_from_models(td_actpas,lin_models);
+% 
+% % test separability of lin model
+% [sep_pred, sep_train_pred] = test_sep(td_actpas_pred);
 
 %% test removal of residual with fine linear model
 [~,td] = getTDidx(trial_data_OOR,'result','R');
