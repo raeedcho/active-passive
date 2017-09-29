@@ -42,19 +42,20 @@ td_act = td_act(~nanners);
 
 
 for trial_num = 1:30
-    
+
     flex_vel_idx = find(strcmp('shoulder_flexion_vel',td(trial_num).opensim_names));
     flex_mom_idx = find(strcmp('shoulder_flexion_moment',td(trial_num).opensim_names));
-    
+
     % plot angular velocity and moment
-    figure
+    figure(1234)
+    clf;
     subplot 231
     yyaxis left
-    
+
     times_act = -10:length(td_act(trial_num).opensim(:,flex_vel_idx))-11;
     times_act = times_act*td_act(trial_num).bin_size;
     %calculate velocity
-%         joint_acc = gradient(td_act(trial_num).opensim(:,3),1);
+    %         joint_acc = gradient(td_act(trial_num).opensim(:,3),1);
     joint_vel = td_act(trial_num).opensim(:,flex_vel_idx);
     joint_mom = td_act(trial_num).opensim(:,flex_mom_idx);
     plot(times_act,joint_vel,'linewidth',2)
@@ -68,7 +69,7 @@ for trial_num = 1:30
 
     subplot 234
     yyaxis left
-    
+
     times_pas = -10:length(td_pas(trial_num).opensim(:,flex_vel_idx))-11;
     times_pas = times_pas*td_pas(trial_num).bin_size;
     %calculate velocity
@@ -82,16 +83,16 @@ for trial_num = 1:30
     plot(times_pas(repmat(td_pas(trial_num).idx_bumpTime,2,1)),ylims,'k--','linewidth',2)
     title 'Passive shoulder flexion'
     set(gca,'box','off','tickdir','out')
-    
+
     xlabel 'Time post-bump/move (s)'
-    
+
     % plot power
     subplot 232
-    
+
     times_act = -10:length(td_act(trial_num).opensim(:,flex_vel_idx))-11;
     times_act = times_act*td_act(trial_num).bin_size;
     %calculate velocity
-%         joint_acc = gradient(td_act(trial_num).opensim(:,3),1);
+    %         joint_acc = gradient(td_act(trial_num).opensim(:,3),1);
     joint_vel = td_act(trial_num).opensim(:,flex_vel_idx);
     joint_mom = td_act(trial_num).opensim(:,flex_mom_idx);
     plot(times_act,joint_vel.*joint_mom,'linewidth',2)
@@ -102,7 +103,7 @@ for trial_num = 1:30
     set(gca,'box','off','tickdir','out')
 
     subplot 235
-    
+
     times_pas = -10:length(td_pas(trial_num).opensim(:,flex_vel_idx))-11;
     times_pas = times_pas*td_pas(trial_num).bin_size;
     %calculate velocity
@@ -114,16 +115,16 @@ for trial_num = 1:30
     plot(times_pas(repmat(td_pas(trial_num).idx_bumpTime,2,1)),ylims,'k--','linewidth',2)
     title 'Passive shoulder power'
     set(gca,'box','off','tickdir','out')
-    
+
     xlabel 'Time post-bump/move (s)'
-    
+
     % plot handle power
     subplot 233
-    
+
     times_act = -10:length(td_act(trial_num).opensim(:,flex_vel_idx))-11;
     times_act = times_act*td_act(trial_num).bin_size;
     %calculate velocity
-%         joint_acc = gradient(td_act(trial_num).opensim(:,3),1);
+    %         joint_acc = gradient(td_act(trial_num).opensim(:,3),1);
     joint_vel = td_act(trial_num).vel;
     joint_mom = td_act(trial_num).force(:,1:2);
     plot(times_act,sum(joint_vel.*joint_mom,2),'linewidth',2)
@@ -134,7 +135,7 @@ for trial_num = 1:30
     set(gca,'box','off','tickdir','out')
 
     subplot 236
-    
+
     times_pas = -10:length(td_pas(trial_num).opensim(:,flex_vel_idx))-11;
     times_pas = times_pas*td_pas(trial_num).bin_size;
     %calculate velocity
@@ -146,7 +147,9 @@ for trial_num = 1:30
     plot(times_pas(repmat(td_pas(trial_num).idx_bumpTime,2,1)),ylims,'k--','linewidth',2)
     title 'Passive handle power'
     set(gca,'box','off','tickdir','out')
-    
+
     xlabel 'Time post-bump/move (s)'
+
+    waitforbuttonpress;
 end
 
