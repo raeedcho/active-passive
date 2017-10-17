@@ -12,15 +12,18 @@ td_act = td_act(~nanners);
 
 % plot active as filled, passive as open
 bump_colors = linspecer(4);
-if strfind(signals{1},'_spikes')
-    pca_name = [strtok(signals{1},'_spikes') '_pca'];
+if strfind(signals{1}{1},'_spikes')
+    pca_name = [strtok(signals{1}{1},'_spikes') '_pca'];
 else
-    pca_name = [signals{1} '_pca'];
+    pca_name = [signals{1}{1} '_pca'];
 end
 S1_pca_act = cat(1,td_act.(pca_name));
 S1_pca_pas = cat(1,td_pas.(pca_name));
 act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
 pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
+
+% fix num_dim if few neurons
+num_dim = min(num_dim,size(td(1).(pca_name),2));
 
 % plot dots
 figure
