@@ -140,46 +140,6 @@ opensim_idx = find(contains(td(1).opensim_names,'_vel') | contains(td(1).opensim
 
 test_sep(td,{'linmodel_S1'},length(opensim_idx))
 
-% [td,~] = getPCA(td,struct('signals',{'linmodel_S1'}));
-% 
-% [~,td_act] = getTDidx(td,'ctrHoldBump',false);
-% [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-% 
-% % clean nans out...?
-% nanners = isnan(cat(1,td_act.target_direction));
-% td_act = td_act(~nanners);
-% 
-% % plot active as filled, passive as open
-% bump_colors = linspecer(4);
-% S1_pca_act = cat(1,td_act.linmodel_S1_pca);
-% S1_pca_pas = cat(1,td_pas.linmodel_S1_pca);
-% act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
-% pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
-% 
-% % plot dots
-% figure
-% hold all
-% scatter3(S1_pca_act(:,1),S1_pca_act(:,2),S1_pca_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
-% scatter3(S1_pca_pas(:,1),S1_pca_pas(:,2),S1_pca_pas(:,3),50,bump_colors(pas_dir_idx,:))
-% axis equal
-% 
-% % Find total separability
-% S1_pca = cat(1,S1_pca_act,S1_pca_pas);
-% actpas = [ones(length(S1_pca_act),1);zeros(length(S1_pca_pas),1)];
-% [train_idx,test_idx] = crossvalind('LeaveMOut',length(actpas),floor(length(actpas)/10));
-% mdl = fitcdiscr(S1_pca(train_idx,1:length(opensim_idx)),actpas(train_idx)); % with linear model, only 4 linearly independent columns
-% class = predict(mdl,S1_pca(test_idx,1:length(opensim_idx)));
-% separability = sum(class == actpas(test_idx))/sum(test_idx);
-% 
-% class_train = predict(mdl,S1_pca(train_idx,1:length(opensim_idx)));
-% sep_train = sum(class_train == actpas(train_idx))/sum(train_idx)
-% 
-% w = mdl.Sigma\diff(mdl.Mu)';
-% figure
-% hold all
-% scatter(S1_pca_act(:,1:length(opensim_idx))*w,1:length(S1_pca_act),50,bump_colors(act_dir_idx,:),'filled')
-% scatter(S1_pca_pas(:,1:length(opensim_idx))*w,1:length(S1_pca_pas),50,bump_colors(pas_dir_idx,:))
-% set(gca,'box','off','tickdir','out')
 % 
 % %% get PCA traces
 % [~,td] = getTDidx(trial_data_actpas,'result','R');
