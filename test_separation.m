@@ -94,7 +94,9 @@ td_pas = binTD(td_pas,15);
 td = cat(2,td_act,td_pas);
 
 td = sqrtTransform(td,'S1_spikes');
-test_sep(td,{{'S1_spikes'}},size(td(1).S1_unit_guide,1))
+% td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
+% td = getPCA(td,struct('signals',{{'S1_spikes'}}));
+test_sep(td,struct('signals',{{'S1_spikes'}},'do_plot',true))
 
 %% Try fabricating trial_data with linear models based on behavior
 [~,td] = getTDidx(trial_data,'result','R');
@@ -114,7 +116,7 @@ td = cat(2,td_act,td_pas);
     'model_name','S1','in_signals',{{'vel';'force'}},...
     'out_signals',{'S1_spikes'}));
 
-test_sep(td,{{'linmodel_S1'}},4)
+test_sep(td,struct('signals',{{'linmodel_S1'}},'do_plot',true))
  
 %% Try fabricating trial_data with linear models based on joint stuff
 [~,td] = getTDidx(trial_data,'result','R');
@@ -139,7 +141,22 @@ opensim_idx = find(contains(td(1).opensim_names,'_vel'));
     {{'opensim',opensim_idx}},...
     'out_signals',{'S1_spikes'}));
 
-test_sep(td,{{'linmodel_S1'}},length(opensim_idx))
+test_sep(td,struct('signals',{{'linmodel_S1'}},'do_plot',true))
+
+% %% Try fabricating trial_data with straight up joint stuff
+% [~,td] = getTDidx(trial_data,'result','R');
+% 
+% td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
+% 
+% [~,td_act] = getTDidx(td,'ctrHoldBump',false);
+% td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',15});
+% td_act = binTD(td_act,15);
+% [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
+% td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',15});
+% td_pas = binTD(td_pas,15);
+% td = cat(2,td_act,td_pas);
+% 
+% test_sep(td,{{'vel';'force'}})
 
 %% Try fabricating trial_data with straight up joint stuff
 [~,td] = getTDidx(trial_data,'result','R');
@@ -154,23 +171,9 @@ td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',15});
 td_pas = binTD(td_pas,15);
 td = cat(2,td_act,td_pas);
 
-test_sep(td,{{'vel';'force'}},length(opensim_idx))
-
-%% Try fabricating trial_data with straight up joint stuff
-[~,td] = getTDidx(trial_data,'result','R');
-
-td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
-
-[~,td_act] = getTDidx(td,'ctrHoldBump',false);
-td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',15});
-td_act = binTD(td_act,15);
-[~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',15});
-td_pas = binTD(td_pas,15);
-td = cat(2,td_act,td_pas);
-
-opensim_idx = find(contains(td(1).opensim_names,'_vel'));
-test_sep(td,{{'opensim',opensim_idx}},length(opensim_idx))
+% opensim_idx = find(contains(td(1).opensim_names,'_vel'));
+% opensim_idx = find(contains(td(1).opensim_names,'_vel') | contains(td(1).opensim_names,'_moment'));
+test_sep(td,struct('signals',{{'opensim',opensim_idx}},'do_plot',true))
 
 % 
 % %% get PCA traces
