@@ -1,5 +1,5 @@
 %% plot some inverse dynamics stuff
-[~,td] = getTDidx(trial_data_actpas,'result','R');
+[~,td] = getTDidx(trial_data,'result','R');
 
 td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
 
@@ -22,35 +22,20 @@ td_act = trimTD(td_act,{'idx_movement_on',-num_bins_before},{'idx_movement_on',n
 [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
 td_pas = trimTD(td_pas,{'idx_bumpTime',-num_bins_before},{'idx_bumpTime',num_bins_after});
 
-% clean nans out...?
-% nanners = isnan(cat(1,td_act.target_direction));
-% td_act = td_act(~nanners);
-
 % Trial average
 td_act = trialAverage(td_act,{'target_direction'});
 td_pas = trialAverage(td_pas,{'bumpDir'});
 td_still = trialAverage(td_still,{'ctrHoldBump'});
 
-% for i=1:4
-%     plot(td_still(i).pos)
-%     plot(td_still(i).force)
-%     hold on
-% end
+% set up which index to look at
+joint_name = 'shoulder_flexion';
+opensim_vel_idx = find(strcmp([joint_name '_vel'],td(1).opensim_names));
+opensim_mom_idx = find(strcmp([joint_name '_moment'],td(1).opensim_names));
+mom_offset =  mean(td_still.opensim(:,opensim_mom_idx));
+% mom_offset = 0;
 
-% plot active as filled, passive as open
-% bump_colors = linspecer(4);
-
-% plot dynamics of shoulder flexion
-% trial_num = 3;
-
-
-joint_name = 'elbow_flexion';
-% for trial_num = 1:30
+% for all four directions
 for trial_num = 1:4
-
-    opensim_vel_idx = find(strcmp([joint_name '_vel'],td(trial_num).opensim_names));
-    opensim_mom_idx = find(strcmp([joint_name '_moment'],td(trial_num).opensim_names));
-
     % plot angular velocity and moment
     % figure(1234)
     figure
@@ -62,7 +47,7 @@ for trial_num = 1:4
     times_act = times_act*td_act(trial_num).bin_size;
     %calculate velocity
     joint_vel = td_act(trial_num).opensim(:,opensim_vel_idx);
-    joint_mom = td_act(trial_num).opensim(:,opensim_mom_idx) - mean(td_still.opensim(:,opensim_mom_idx));
+    joint_mom = td_act(trial_num).opensim(:,opensim_mom_idx) - mom_offset;
     plot(times_act,joint_vel,'linewidth',2)
     hold on
     % joint_vel = td_still(trial_num).opensim(:,opensim_vel_idx);
@@ -84,7 +69,7 @@ for trial_num = 1:4
     times_pas = times_pas*td_pas(trial_num).bin_size;
     %calculate velocity
     joint_vel = td_pas(trial_num).opensim(:,opensim_vel_idx);
-    joint_mom = td_pas(trial_num).opensim(:,opensim_mom_idx) - mean(td_still.opensim(:,opensim_mom_idx));
+    joint_mom = td_pas(trial_num).opensim(:,opensim_mom_idx) - mom_offset;
     plot(times_pas,joint_vel,'linewidth',2)
     hold on
     % joint_vel = td_still(trial_num).opensim(:,opensim_vel_idx);
@@ -109,7 +94,7 @@ for trial_num = 1:4
     %calculate velocity
     %         joint_acc = gradient(td_act(trial_num).opensim(:,3),1);
     joint_vel = td_act(trial_num).opensim(:,opensim_vel_idx);
-    joint_mom = td_act(trial_num).opensim(:,opensim_mom_idx) - mean(td_still.opensim(:,opensim_mom_idx));
+    joint_mom = td_act(trial_num).opensim(:,opensim_mom_idx) - mom_offset;
     plot(times_act,joint_vel.*joint_mom,'linewidth',2)
     hold on
     ylims = get(gca,'ylim');
@@ -123,7 +108,7 @@ for trial_num = 1:4
     times_pas = times_pas*td_pas(trial_num).bin_size;
     %calculate velocity
     joint_vel = td_pas(trial_num).opensim(:,opensim_vel_idx);
-    joint_mom = td_pas(trial_num).opensim(:,opensim_mom_idx) - mean(td_still.opensim(:,opensim_mom_idx));
+    joint_mom = td_pas(trial_num).opensim(:,opensim_mom_idx) - mom_offset;
     plot(times_pas,joint_vel.*joint_mom,'linewidth',2)
     hold on
     ylims = get(gca,'ylim');
