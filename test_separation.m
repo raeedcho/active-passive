@@ -150,7 +150,8 @@ td = cat(2,td_act,td_pas);
 
 % get models for force and velocity from actpas data
 % opensim_idx = find(contains(td(1).opensim_names,'_moment'));
-opensim_idx = find(contains(td(1).opensim_names,'_vel'));
+% opensim_idx = find(contains(td(1).opensim_names,'_vel'));
+opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
 % opensim_idx = find(contains(td(1).opensim_names,'_vel') & ~contains(td(1).opensim_names,'wrist') & ~contains(td(1).opensim_names,'radial'));
 % opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
 % opensim_idx = find(contains(td(1).opensim_names,'_vel') | contains(td(1).opensim_names,'_moment'));
@@ -161,7 +162,8 @@ opensim_idx = find(contains(td(1).opensim_names,'_vel'));
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1'}}));
-test_sep(td,struct('signals',{{'linmodel_S1_pca',1:length(opensim_idx)}},'do_plot',true))
+% test_sep(td,struct('signals',{{'linmodel_S1_pca',1:length(opensim_idx)}},'do_plot',true))
+test_sep(td,struct('signals',{{'linmodel_S1_pca'}},'do_plot',true))
 
 %% Try fabricating trial_data with straight up joint stuff
 % [~,td] = getTDidx(trial_data,'result','R');
