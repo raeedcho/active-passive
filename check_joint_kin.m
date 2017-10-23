@@ -1,4 +1,4 @@
-%% Get PCA for act vs pas
+% split data
 [~,td] = getTDidx(trial_data,'result','R');
 
 td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
