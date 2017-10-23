@@ -25,12 +25,8 @@ signals = check_signals(td,signals);
 nanners = isnan(cat(1,td_act.target_direction));
 td_act = td_act(~nanners);
 
-% plot active as filled, passive as open
-bump_colors = linspecer(4);
 signal_act = get_vars(td_act,signals);
 signal_pas = get_vars(td_pas,signals);
-act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
-pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
 
 % Find total separability
 signal = cat(1,signal_act,signal_pas);
@@ -43,16 +39,26 @@ separability = sum(class == actpas(test_idx))/sum(test_idx);
 class_train = predict(mdl,signal(train_idx,:));
 sep_train = sum(class_train == actpas(train_idx))/sum(train_idx);
 
-w = mdl.Sigma\diff(mdl.Mu)'
-signal_sep = signal*w;
 
-% get basis vector orthogonal to w for plotting
-null_sep = null(w');
-signal_null_sep = signal*null_sep;
-[~,signal_null_sep_scores] = pca(signal_null_sep);
 
 if do_plot
+    % plot active as filled, passive as open
+    bump_colors = linspecer(4);
+    act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
+    pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
+    
+    w = mdl.Sigma\diff(mdl.Mu)';
+    signal_sep = signal*w;
+
+    % get basis vector orthogonal to w for plotting
+    null_sep = null(w');
+    signal_null_sep = signal*null_sep;
+    [~,signal_null_sep_scores] = pca(signal_null_sep);
+
     figure
+    % plot twice to get two separate views
+    % first for act/pas separability
+    subplot(1,2,1)
     hold all
     scatter3(signal_sep(actpas==1),signal_null_sep_scores(actpas==1,1),signal_null_sep_scores(actpas==1,2),50,bump_colors(act_dir_idx,:),'filled')
     scatter3(signal_sep(actpas==0),signal_null_sep_scores(actpas==0,1),signal_null_sep_scores(actpas==0,2),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
@@ -60,6 +66,17 @@ if do_plot
     zlim = get(gca,'zlim');
     plot3([0 0],ylim,[0 0],'--k','linewidth',2)
     plot3([0 0],[0 0],zlim,'--k','linewidth',2)
+    set(gca,'box','off','tickdir','out')
+    view([0 0])
+    axis off
+    
+    % then for directional separability/other view
+    subplot(1,2,2)
+    hold all
+    scatter3(signal_sep(actpas==1),signal_null_sep_scores(actpas==1,1),signal_null_sep_scores(actpas==1,2),50,bump_colors(act_dir_idx,:),'filled')
+    scatter3(signal_sep(actpas==0),signal_null_sep_scores(actpas==0,1),signal_null_sep_scores(actpas==0,2),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
+    ylim = get(gca,'ylim');
+    zlim = get(gca,'zlim');
     set(gca,'box','off','tickdir','out')
     view([0 0])
     axis off
