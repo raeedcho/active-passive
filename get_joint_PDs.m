@@ -23,15 +23,18 @@ td = cat(2,td_act,td_pas);
 % opensim_idx = find(contains(td(1).opensim_names,'_vel'));
 opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
 signal_name = 'opensim';
-num_boots = 10;
-opensimPDtable_act = getTDPDs(td_act,struct('out_signals',{{signal_name,opensim_idx}},...
+num_boots = 1000;
+opensimPDtable_act = getTDPDs(td_act,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},...
                                           'distribution','normal','move_corr','vel','num_boots',num_boots));
-opensimPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{signal_name,opensim_idx}},...
+opensimPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},...
                                           'distribution','normal','move_corr','vel','num_boots',num_boots));
-spikesPDtable_act = getTDPDs(td_act,struct('out_signals',{{'S1_spikes'}},...
-                                          'distribution','normal','move_corr','vel','num_boots',num_boots));
-spikesPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{'S1_spikes'}},...
-                                          'distribution','normal','move_corr','vel','num_boots',num_boots));
+spikesPDtable_act = getTDPDs(td_act,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},...
+                                          'distribution','poisson','move_corr','vel','num_boots',num_boots));
+spikesPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},...
+                                          'distribution','poisson','move_corr','vel','num_boots',num_boots));
+
+% save PD tables
+save('C:/Users/Raeed/Projects/limblab/data-td/ForceKin/Chips/20170913/pdtables.mat','*PDtable*')
 
 % plot tuning
 maxRad = max(cat(1,opensimPDtable_act.velModdepth,opensimPDtable_pas.velModdepth));
@@ -54,6 +57,7 @@ isTuned_params = struct('move_corr','vel','CIthresh',pi/4);
 isTuned = checkIsTuned(opensimPDtable_act,isTuned_params)...
             & checkIsTuned(opensimPDtable_pas,isTuned_params);
 figure
+subplot(1,2,2)
 errorbar(opensimPDtable_act.velDir(isTuned),opensimPDtable_pas.velDir(isTuned),...
         minusPi2Pi(opensimPDtable_pas.velDir(isTuned)-opensimPDtable_pas.velDirCI(isTuned,1)),...
         minusPi2Pi(opensimPDtable_pas.velDirCI(isTuned,1)-opensimPDtable_pas.velDir(isTuned)),...
@@ -61,21 +65,30 @@ errorbar(opensimPDtable_act.velDir(isTuned),opensimPDtable_pas.velDir(isTuned),.
         minusPi2Pi(opensimPDtable_act.velDirCI(isTuned,1)-opensimPDtable_act.velDir(isTuned)),...
         'ro','linewidth',2)
 hold on
+plot([-pi pi],[-pi pi],'--k','linewidth',2)
+xlabel('Active PD')
+ylabel('Passive PD')
+title('Muscle PDs')
+set(get(gca,'ylabel'),'rotation',0,'horizontalalignment','right')
+set(gca,'box','off','tickdir','out','xlim',[-pi pi],'ylim',[-pi pi],'xtick',[-pi pi],'ytick',[-pi pi],'xticklabel',{'-\pi','\pi'},'yticklabel',{'-\pi','\pi'})
+axis equal
 
 % plot neuron active tuning against passive tuning (same figure)
-isTuned_params = struct('move_corr','vel','CIthresh',pi/4);
+isTuned_params = struct('move_corr','vel','CIthresh',pi/3);
 isTuned = checkIsTuned(spikesPDtable_act,isTuned_params)...
             & checkIsTuned(spikesPDtable_pas,isTuned_params);
+subplot(1,2,1)
 errorbar(spikesPDtable_act.velDir(isTuned),spikesPDtable_pas.velDir(isTuned),...
         (spikesPDtable_pas.velDir(isTuned)-spikesPDtable_pas.velDirCI(isTuned,1)),...
         (spikesPDtable_pas.velDirCI(isTuned,1)-spikesPDtable_pas.velDir(isTuned)),...
         (spikesPDtable_act.velDir(isTuned)-spikesPDtable_act.velDirCI(isTuned,1)),...
         (spikesPDtable_act.velDirCI(isTuned,1)-spikesPDtable_act.velDir(isTuned)),...
         'mo','linewidth',2)
-
+hold on
 plot([-pi pi],[-pi pi],'--k','linewidth',2)
 xlabel('Active PD')
 ylabel('Passive PD')
+title('Neural PDs')
 set(get(gca,'ylabel'),'rotation',0,'horizontalalignment','right')
 set(gca,'box','off','tickdir','out','xlim',[-pi pi],'ylim',[-pi pi],'xtick',[-pi pi],'ytick',[-pi pi],'xticklabel',{'-\pi','\pi'},'yticklabel',{'-\pi','\pi'})
 axis equal
