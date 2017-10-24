@@ -5,20 +5,18 @@ td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_en
 
 [~,td_act] = getTDidx(td,'ctrHoldBump',false);
 td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',15});
-td_act = binTD(td_act,15);
+td_act = binTD(td_act,5);
 [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
 td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',15});
-td_pas = binTD(td_pas,15);
+td_pas = binTD(td_pas,5);
 td = cat(2,td_act,td_pas);
 
-% % get muscle velocity PCA
-% PCAparams_vel = struct('signals',{{'opensim',find(contains(td(1).opensim_names,'_muscVel'))}},...
-%                     'do_plot',true);
-% [td,pca_info_vel] = getPCA(td,PCAparams_vel);
-% % temporary hack to allow us to save into something useful
-% for i=1:length(td)
-%     td(i).opensim_muscVel_pca = td(i).opensim_pca;
-% end
+% scale spikes by binsize
+for i = 1:length(td)
+    td(i).S1_spikes = td(i).S1_spikes/td(i).bin_size;
+end
+[~,td_act] = getTDidx(td,'ctrHoldBump',false);
+[~,td_pas] = getTDidx(td,'ctrHoldBump',true);
 
 % opensim_idx = find(contains(td(1).opensim_names,'_vel'));
 opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
@@ -34,7 +32,7 @@ spikesPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{'S1_spikes'}},'out_si
                                           'distribution','poisson','move_corr','vel','num_boots',num_boots));
 
 % save PD tables
-save('C:/Users/Raeed/Projects/limblab/data-td/ForceKin/Chips/20170913/pdtables.mat','*PDtable*')
+save('~/Projects/limblab/data-td/ForceKin/Han/20170203/pdtable50.mat','*PDtable*')
 
 % plot tuning
 maxRad = max(cat(1,opensimPDtable_act.velModdepth,opensimPDtable_pas.velModdepth));
