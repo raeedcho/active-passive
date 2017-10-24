@@ -45,17 +45,20 @@ td = getPCA(td,struct('signals',{{'linmodel_S1_muscle'}}));
 test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true))
 
 %% get boostrapped separability values
-n_boot = 10;
-bootsep_true = bootstrp(n_boot,@(x) test_sep(x,struct('signals',{{'S1_pca'}})),td);
-bootsep_handle = bootstrp(n_boot,@(x) test_sep(x,struct('signals',{{'linmodel_S1_handle_pca'}})),td);
-bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x,struct('signals',{{'linmodel_S1_muscle_pca'}})),td);
+n_boot = 1;
+bootsep_true = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'S1_pca'}})),td');
+bootsep_handle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca',1:4}})),td');
+bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}})),td');
 
+figure
 bar([mean(bootsep_true) mean(bootsep_handle) mean(bootsep_muscle)])
 hold on
 sep_true = prctile(bootsep_true,[2.5 97.5]);
 sep_handle = prctile(bootsep_handle,[2.5 97.5]);
 sep_muscle = prctile(bootsep_muscle,[2.5 97.5]);
-plot([1:3;1:3],[sep_true sep_handle sep_muscle],'-k','linewidth',2)
+plot([1:3;1:3],[sep_true' sep_handle' sep_muscle'],'-k','linewidth',2)
+plot([0 4],[0.5 0.5],'--k','linewidth',2)
+set(gca,'box','off','tickdir','out','xticklabel',{'Actual','Handle Vel/Force','Muscle Vel'},'ytick',[0 0.5 1])
 
 %% Try fabricating trial_data with straight up handle stuff
 % [~,td] = getTDidx(trial_data,'result','R');
