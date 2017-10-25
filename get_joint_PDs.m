@@ -35,7 +35,6 @@ spikesPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{'S1_spikes'}},'out_si
 save('~/Projects/limblab/data-td/ForceKin/Han/20170203/pdtable50.mat','*PDtable*')
 
 % plot tuning
-maxRad = max(cat(1,opensimPDtable_act.velModdepth,opensimPDtable_pas.velModdepth));
 colors = linspecer(length(opensim_idx));
 h1 = figure;
 polar(0,maxRad);
