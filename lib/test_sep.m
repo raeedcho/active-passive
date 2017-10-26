@@ -1,10 +1,10 @@
-function [separability,sep_train,w] = test_sep(td,params)
+function [separability,mdl] = test_sep(td,params)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DEFAULT PARAMETER VALUES
 use_trials      =  1:length(td);
 signals         =  getTDfields(td,'spikes');
 do_plot         =  false;
-lda_sep         =  [];
+mdl             =  [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Some extra parameters you can change that aren't described in header
 if nargin > 1, assignParams(who,params); end % overwrite parameters
@@ -33,7 +33,11 @@ signal_pas = get_vars(td_pas,signals);
 signal = cat(1,signal_act,signal_pas);
 actpas = [ones(length(signal_act),1);zeros(length(signal_pas),1)];
 [train_idx,test_idx] = crossvalind('LeaveMOut',length(actpas),floor(length(actpas)/10));
-mdl = fitcdiscr(signal(train_idx,:),actpas(train_idx));
+
+% get model
+if isempty(mdl)
+    mdl = fitcdiscr(signal(train_idx,:),actpas(train_idx));
+end
 class = predict(mdl,signal(test_idx,:));
 separability = sum(class == actpas(test_idx))/sum(test_idx);
 
@@ -48,11 +52,7 @@ if do_plot
     act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
     pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
     
-    if ~isempty(lda_sep)
-        w = lda_sep;
-    else
-        w = mdl.Sigma\diff(mdl.Mu)';
-    end
+    w = mdl.Sigma\diff(mdl.Mu)';
     signal_sep = signal*w;
 
     % get basis vector orthogonal to w for plotting

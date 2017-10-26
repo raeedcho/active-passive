@@ -15,7 +15,8 @@ td = cat(2,td_act,td_pas);
 td = sqrtTransform(td,'S1_spikes');
 % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
 td = getPCA(td,struct('signals',{{'S1_spikes'}}));
-test_sep(td,struct('signals',{{'S1_pca'}},'do_plot',true))
+[actual_sep,actual_mdl] = test_sep(td,struct('signals',{{'S1_pca'}},'do_plot',true));
+disp(['Actual separability - ' num2str(actual_sep)])
 
 %% Try fabricating trial_data with linear models based on handle kinematics and force
 % get models for force and velocity from actpas data
@@ -24,7 +25,8 @@ test_sep(td,struct('signals',{{'S1_pca'}},'do_plot',true))
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_handle'}}));
-test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true))
+[velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true));
+disp(['Velforce separability - ' num2str(velforce_sep)])
 
 %% Try fabricating trial_data with linear models based on muscles
 % get models for force and velocity from actpas data
@@ -41,14 +43,19 @@ opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_muscle'}}));
-% test_sep(td,struct('signals',{{'linmodel_S1_pca',1:length(opensim_idx)}},'do_plot',true))
-test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true))
+[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
+% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true));
+disp(['Muscle separability - ' num2str(muscle_sep)])
 
 %% get boostrapped separability values
-n_boot = 1;
-bootsep_true = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'S1_pca'}})),td');
+n_boot = 1000;
+
+% use actual model for this
+bootsep_true = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'S1_pca'}},'mdl',actual_mdl)),td');
 bootsep_handle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca',1:4}})),td');
-bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}})),td');
+% bootsep_handle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl)),td');
+bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}})),td');
+% bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl)),td');
 
 figure
 bar([mean(bootsep_true) mean(bootsep_handle) mean(bootsep_muscle)])
