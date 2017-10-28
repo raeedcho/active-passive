@@ -25,7 +25,8 @@ disp(['Actual separability - ' num2str(actual_sep)])
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_handle'}}));
-[velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true));
+% [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true));
+[velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl,'do_plot',true));
 disp(['Velforce separability - ' num2str(velforce_sep)])
 
 %% Try fabricating trial_data with linear models based on muscles
@@ -43,29 +44,61 @@ opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_muscle'}}));
-[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
+% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
 % [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true));
+[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl,'do_plot',true));
 disp(['Muscle separability - ' num2str(muscle_sep)])
 
 %% get boostrapped separability values
-n_boot = 1000;
 
+% get correlated noise models
+handle_noise_covar = getNoiseCovar(td,struct('actual_signals',{{'S1_spikes'}},'modeled_signals',{{'linmodel_S1_handle'}},...
+                                                'do_plot',false));
+td = addCorrelatedNoise(td,struct('signals',{{'linmodel_S1_handle'}},'noise_covar',handle_noise_covar));
+td = getPCA(td,struct('signals',{{'linmodel_S1_handle_noisy'}}));
+muscle_noise_covar = getNoiseCovar(td,struct('actual_signals',{{'S1_spikes'}},'modeled_signals',{{'linmodel_S1_muscle'}},...
+                                                'do_plot',false));
+td = addCorrelatedNoise(td,struct('signals',{{'linmodel_S1_muscle'}},'noise_covar',muscle_noise_covar));
+td = getPCA(td,struct('signals',{{'linmodel_S1_muscle_noisy'}}));
+
+% bootstrap!
+n_boot = 1000;
 % use actual model for this
 bootsep_true = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'S1_pca'}},'mdl',actual_mdl)),td');
-bootsep_handle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca',1:4}})),td');
-% bootsep_handle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl)),td');
-bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}})),td');
-% bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl)),td');
 
-figure
-bar([mean(bootsep_true) mean(bootsep_handle) mean(bootsep_muscle)])
-hold on
+bootsep_handle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca',1:4}})),td');
+bootsep_handle_actual = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl)),td');
+bootsep_handle_actual_noisy = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_noisy_pca'}},'mdl',actual_mdl)),td');
+
+bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}})),td');
+% bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}})),td');
+bootsep_muscle_actual = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl)),td');
+bootsep_muscle_actual_noisy = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_noisy_pca'}},'mdl',actual_mdl)),td');
+
+% get separability CIs
 sep_true = prctile(bootsep_true,[2.5 97.5]);
+
 sep_handle = prctile(bootsep_handle,[2.5 97.5]);
+sep_handle_actual = prctile(bootsep_handle_actual,[2.5 97.5]);
+sep_handle_actual_noisy = prctile(bootsep_handle_actual_noisy,[2.5 97.5]);
+
 sep_muscle = prctile(bootsep_muscle,[2.5 97.5]);
-plot([1:3;1:3],[sep_true' sep_handle' sep_muscle'],'-k','linewidth',2)
-plot([0 4],[0.5 0.5],'--k','linewidth',2)
-set(gca,'box','off','tickdir','out','xticklabel',{'Actual','Handle Vel/Force','Muscle Vel'},'ytick',[0 0.5 1])
+sep_muscle_actual = prctile(bootsep_muscle_actual,[2.5 97.5]);
+sep_muscle_actual_noisy = prctile(bootsep_muscle_actual_noisy,[2.5 97.5]);
+
+% plot separabilities with CIs
+figure
+barh(fliplr([mean(bootsep_true) mean(bootsep_handle) mean(bootsep_handle_actual) mean(bootsep_handle_actual_noisy)...
+    mean(bootsep_muscle) mean(bootsep_muscle_actual) mean(bootsep_muscle_actual_noisy)]))
+shading flat
+hold on
+plot(fliplr([sep_true' sep_handle' sep_handle_actual' sep_handle_actual_noisy'...
+                sep_muscle' sep_muscle_actual' sep_muscle_actual_noisy']),[1:7;1:7],'-k','linewidth',2)
+plot([0.5 0.5],[0 8],'--k','linewidth',2)
+set(gca,'box','off','tickdir','out','yticklabel',fliplr({'Actual','Handle Vel/Force','Handle Vel/Force w/Actual Disc',...
+                                                    'Noisy Handle Vel/Force w/Actual Disc','Muscle Vel',...
+                                                    'Muscle Vel w/Actual Disc','Noisy Muscle Vel w/Actual Disc'}),...
+                                                    'xtick',[0 0.5 1])
 
 %% Try fabricating trial_data with straight up handle stuff
 % [~,td] = getTDidx(trial_data,'result','R');
