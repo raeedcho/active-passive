@@ -22,44 +22,49 @@ end
 opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
 signal_name = 'opensim';
 num_boots = 1000;
-opensimPDtable_act = getTDPDs(td_act,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},...
+opensimPDs{1} = getTDPDs(td_act,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},...
                                           'distribution','normal','move_corr','vel','num_boots',num_boots));
-opensimPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},...
+opensimPDs{2} = getTDPDs(td_pas,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},...
                                           'distribution','normal','move_corr','vel','num_boots',num_boots));
-spikesPDtable_act = getTDPDs(td_act,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},...
+spikesPDs{1} = getTDPDs(td_act,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},...
                                           'distribution','poisson','move_corr','vel','num_boots',num_boots));
-spikesPDtable_pas = getTDPDs(td_pas,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},...
+spikesPDs{2} = getTDPDs(td_pas,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},...
                                           'distribution','poisson','move_corr','vel','num_boots',num_boots));
 
+% get tuning curves
+[opensimCurves{1},bins] = getTuningCurves(td_act,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},'num_bins',4));
+opensimCurves{2} = getTuningCurves(td_pas,struct('out_signals',{{signal_name,opensim_idx}},'out_signal_names',{td(1).opensim_names(opensim_idx)},'num_bins',4));
+spikesCurves{1} = getTuningCurves(td_act,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},'num_bins',4));
+spikesCurves{2} = getTuningCurves(td_pas,struct('out_signals',{{'S1_spikes'}},'out_signal_names',{td(1).S1_unit_guide},'num_bins',4));
 % save PD tables
-save('~/Projects/limblab/data-td/ForceKin/Han/20170203/pdtable50.mat','*PDtable*')
+% save('~/Projects/limblab/data-td/ForceKin/Han/20170203/pdtable50.mat','*PDtable*')
 
-% plot tuning
-colors = linspecer(length(opensim_idx));
-h1 = figure;
-polar(0,maxRad);
-hold on
-h2 = figure;
-polar(0,maxRad);
-hold on
-for i = 1:length(opensim_idx)
-    figure(h1)
-    plotTuning([],opensimPDtable_act(i,:),[],opensimPDtable_act.velModdepth(i),colors(i,:),'-')
-    figure(h2)
-    plotTuning([],opensimPDtable_pas(i,:),[],opensimPDtable_pas.velModdepth(i),colors(i,:),'--')
-end
+% % plot tuning
+% colors = linspecer(length(opensim_idx));
+% h1 = figure;
+% polar(0,maxRad);
+% hold on
+% h2 = figure;
+% polar(0,maxRad);
+% hold on
+% for i = 1:length(opensim_idx)
+%     figure(h1)
+%     plotTuning([],opensimPDs{1}(i,:),[],opensimPDs{1}.velModdepth(i),colors(i,:),'-')
+%     figure(h2)
+%     plotTuning([],opensimPDs{2}(i,:),[],opensimPDs{2}.velModdepth(i),colors(i,:),'--')
+% end
 
 % plot muscle active tuning against passive tuning
 isTuned_params = struct('move_corr','vel','CIthresh',pi/4);
-isTuned = checkIsTuned(opensimPDtable_act,isTuned_params)...
-            & checkIsTuned(opensimPDtable_pas,isTuned_params);
+isTuned = checkIsTuned(opensimPDs{1},isTuned_params)...
+            & checkIsTuned(opensimPDs{2},isTuned_params);
 figure
 subplot(1,2,2)
-errorbar(opensimPDtable_act.velDir(isTuned),opensimPDtable_pas.velDir(isTuned),...
-        minusPi2Pi(opensimPDtable_pas.velDir(isTuned)-opensimPDtable_pas.velDirCI(isTuned,1)),...
-        minusPi2Pi(opensimPDtable_pas.velDirCI(isTuned,1)-opensimPDtable_pas.velDir(isTuned)),...
-        minusPi2Pi(opensimPDtable_act.velDir(isTuned)-opensimPDtable_act.velDirCI(isTuned,1)),...
-        minusPi2Pi(opensimPDtable_act.velDirCI(isTuned,1)-opensimPDtable_act.velDir(isTuned)),...
+errorbar(opensimPDs{1}.velDir(isTuned),opensimPDs{2}.velDir(isTuned),...
+        minusPi2Pi(opensimPDs{2}.velDir(isTuned)-opensimPDs{2}.velDirCI(isTuned,1)),...
+        minusPi2Pi(opensimPDs{2}.velDirCI(isTuned,1)-opensimPDs{2}.velDir(isTuned)),...
+        minusPi2Pi(opensimPDs{1}.velDir(isTuned)-opensimPDs{1}.velDirCI(isTuned,1)),...
+        minusPi2Pi(opensimPDs{1}.velDirCI(isTuned,1)-opensimPDs{1}.velDir(isTuned)),...
         'ro','linewidth',2)
 hold on
 plot([-pi pi],[-pi pi],'--k','linewidth',2)
@@ -70,16 +75,17 @@ set(get(gca,'ylabel'),'rotation',0,'horizontalalignment','right')
 set(gca,'box','off','tickdir','out','xlim',[-pi pi],'ylim',[-pi pi],'xtick',[-pi pi],'ytick',[-pi pi],'xticklabel',{'-\pi','\pi'},'yticklabel',{'-\pi','\pi'})
 axis equal
 
+
 % plot neuron active tuning against passive tuning (same figure)
 isTuned_params = struct('move_corr','vel','CIthresh',pi/3);
-isTuned = checkIsTuned(spikesPDtable_act,isTuned_params)...
-            & checkIsTuned(spikesPDtable_pas,isTuned_params);
+isTuned = checkIsTuned(spikesPDs{1},isTuned_params)...
+            & checkIsTuned(spikesPDs{2},isTuned_params);
 subplot(1,2,1)
-errorbar(spikesPDtable_act.velDir(isTuned),spikesPDtable_pas.velDir(isTuned),...
-        (spikesPDtable_pas.velDir(isTuned)-spikesPDtable_pas.velDirCI(isTuned,1)),...
-        (spikesPDtable_pas.velDirCI(isTuned,1)-spikesPDtable_pas.velDir(isTuned)),...
-        (spikesPDtable_act.velDir(isTuned)-spikesPDtable_act.velDirCI(isTuned,1)),...
-        (spikesPDtable_act.velDirCI(isTuned,1)-spikesPDtable_act.velDir(isTuned)),...
+errorbar(spikesPDs{1}.velDir(isTuned),spikesPDs{2}.velDir(isTuned),...
+        (spikesPDs{2}.velDir(isTuned)-spikesPDs{2}.velDirCI(isTuned,1)),...
+        (spikesPDs{2}.velDirCI(isTuned,1)-spikesPDs{2}.velDir(isTuned)),...
+        (spikesPDs{1}.velDir(isTuned)-spikesPDs{1}.velDirCI(isTuned,1)),...
+        (spikesPDs{1}.velDirCI(isTuned,1)-spikesPDs{1}.velDir(isTuned)),...
         'mo','linewidth',2)
 hold on
 plot([-pi pi],[-pi pi],'--k','linewidth',2)
@@ -89,3 +95,10 @@ title('Neural PDs')
 set(get(gca,'ylabel'),'rotation',0,'horizontalalignment','right')
 set(gca,'box','off','tickdir','out','xlim',[-pi pi],'ylim',[-pi pi],'xtick',[-pi pi],'ytick',[-pi pi],'xticklabel',{'-\pi','\pi'},'yticklabel',{'-\pi','\pi'})
 axis equal
+
+% plot all tuning
+figure
+plotAllTuning(opensimCurves,opensimPDs,bins,find(isTuned))
+figure
+plotAllTuning(spikesCurves,spikesPDs,bins,find(isTuned))
+
