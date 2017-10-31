@@ -4,6 +4,9 @@
 td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
 
 [~,td_act] = getTDidx(td,'ctrHoldBump',false);
+% clean nans out...?
+nanners = isnan(cat(1,td_act.target_direction));
+td_act = td_act(~nanners);
 td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',15});
 td_act = binTD(td_act,15);
 [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
@@ -22,8 +25,10 @@ subplot(2,3,4)
 disp(['Actual separability - ' num2str(actual_sep)])
 
 % then for directional separability/other view
-signal_act = get_vars(td_act,{{'S1_pca'}});
-signal_pas = get_vars(td_pas,{{'S1_pca'}});
+[~,td_act] = getTDidx(td,'ctrHoldBump',false);
+[~,td_pas] = getTDidx(td,'ctrHoldBump',true);
+signal_act = cat(1,td_act.S1_pca);
+signal_pas = cat(1,td_pas.S1_pca);
 % plot active as filled, passive as open
 bump_colors = linspecer(4);
 act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
@@ -46,15 +51,16 @@ axis off
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_handle'}}));
 
-figure
 subplot(2,3,5)
 [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true));
 % [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl,'do_plot',true));
 disp(['Velforce separability - ' num2str(velforce_sep)])
 
 % then for directional separability/other view
-signal_act = get_vars(td_act,{{'linmodel_S1_handle_pca'}});
-signal_pas = get_vars(td_pas,{{'linmodel_S1_handle_pca'}});
+[~,td_act] = getTDidx(td,'ctrHoldBump',false);
+[~,td_pas] = getTDidx(td,'ctrHoldBump',true);
+signal_act = cat(1,td_act.linmodel_S1_handle_pca);
+signal_pas = cat(1,td_pas.linmodel_S1_handle_pca);
 % plot active as filled, passive as open
 bump_colors = linspecer(4);
 act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
@@ -85,16 +91,17 @@ opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_muscle'}}));
 
-figure
 subplot(2,3,6)
-[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
-% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true));
+% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
+[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true));
 % [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl,'do_plot',true));
 disp(['Muscle separability - ' num2str(muscle_sep)])
 
 % then for directional separability/other view
-signal_act = get_vars(td_act,{{'linmodel_S1_muscle_pca'}});
-signal_pas = get_vars(td_pas,{{'linmodel_S1_muscle_pca'}});
+[~,td_act] = getTDidx(td,'ctrHoldBump',false);
+[~,td_pas] = getTDidx(td,'ctrHoldBump',true);
+signal_act = cat(1,td_act.linmodel_S1_muscle_pca);
+signal_pas = cat(1,td_pas.linmodel_S1_muscle_pca);
 % plot active as filled, passive as open
 bump_colors = linspecer(4);
 act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
@@ -130,8 +137,8 @@ bootsep_handle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S
 bootsep_handle_actual = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl)),td');
 bootsep_handle_actual_noisy = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_handle_noisy_pca'}},'mdl',actual_mdl)),td');
 
-bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}})),td');
-% bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}})),td');
+% bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}})),td');
+bootsep_muscle = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}})),td');
 bootsep_muscle_actual = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl)),td');
 bootsep_muscle_actual_noisy = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'linmodel_S1_muscle_noisy_pca'}},'mdl',actual_mdl)),td');
 
