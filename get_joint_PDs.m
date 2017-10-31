@@ -58,7 +58,7 @@ spikesCurves{2} = getTuningCurves(td_pas,struct('out_signals',{{'S1_spikes'}},'o
 isTuned_params = struct('move_corr','vel','CIthresh',pi/4);
 isTuned = checkIsTuned(opensimPDs{1},isTuned_params)...
             & checkIsTuned(opensimPDs{2},isTuned_params);
-figure
+h1 = figure;
 subplot(1,2,2)
 errorbar(opensimPDs{1}.velDir(isTuned),opensimPDs{2}.velDir(isTuned),...
         minusPi2Pi(opensimPDs{2}.velDir(isTuned)-opensimPDs{2}.velDirCI(isTuned,1)),...
@@ -75,8 +75,13 @@ set(get(gca,'ylabel'),'rotation',0,'horizontalalignment','right')
 set(gca,'box','off','tickdir','out','xlim',[-pi pi],'ylim',[-pi pi],'xtick',[-pi pi],'ytick',[-pi pi],'xticklabel',{'-\pi','\pi'},'yticklabel',{'-\pi','\pi'})
 axis equal
 
+% plot all tuning
+figure
+plotAllTuning(opensimCurves,opensimPDs,bins,find(isTuned))
+
 
 % plot neuron active tuning against passive tuning (same figure)
+figure(h1)
 isTuned_params = struct('move_corr','vel','CIthresh',pi/3);
 isTuned = checkIsTuned(spikesPDs{1},isTuned_params)...
             & checkIsTuned(spikesPDs{2},isTuned_params);
@@ -97,8 +102,6 @@ set(gca,'box','off','tickdir','out','xlim',[-pi pi],'ylim',[-pi pi],'xtick',[-pi
 axis equal
 
 % plot all tuning
-figure
-plotAllTuning(opensimCurves,opensimPDs,bins,find(isTuned))
 figure
 plotAllTuning(spikesCurves,spikesPDs,bins,find(isTuned))
 

@@ -60,10 +60,7 @@ if do_plot
     signal_null_sep = signal*null_sep;
     [~,signal_null_sep_scores] = pca(signal_null_sep);
 
-    figure
-    % plot twice to get two separate views
-    % first for act/pas separability
-    subplot(1,2,1)
+    % plot for act/pas separability
     hold all
     scatter3(signal_sep(actpas==1),signal_null_sep_scores(actpas==1,1),signal_null_sep_scores(actpas==1,2),50,bump_colors(act_dir_idx,:),'filled')
     scatter3(signal_sep(actpas==0),signal_null_sep_scores(actpas==0,1),signal_null_sep_scores(actpas==0,2),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
@@ -73,16 +70,5 @@ if do_plot
     plot3([0 0],[0 0],zlim,'--k','linewidth',2)
     set(gca,'box','off','tickdir','out')
     view([0 0])
-    axis off
-    
-    % then for directional separability/other view
-    subplot(1,2,2)
-    hold all
-    scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
-    scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
-    ylim = get(gca,'ylim');
-    zlim = get(gca,'zlim');
-    set(gca,'box','off','tickdir','out')
-    axis equal
     axis off
 end

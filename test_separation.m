@@ -15,8 +15,22 @@ td = cat(2,td_act,td_pas);
 td = sqrtTransform(td,'S1_spikes');
 % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
 td = getPCA(td,struct('signals',{{'S1_spikes'}}));
+
+figure
+subplot(2,3,4)
 [actual_sep,actual_mdl] = test_sep(td,struct('signals',{{'S1_pca'}},'do_plot',true));
 disp(['Actual separability - ' num2str(actual_sep)])
+
+% then for directional separability/other view
+subplot(2,3,1)
+hold all
+scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
+scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
+ylim = get(gca,'ylim');
+zlim = get(gca,'zlim');
+set(gca,'box','off','tickdir','out')
+axis equal
+axis off
 
 %% Try fabricating trial_data with linear models based on handle kinematics and force
 % get models for force and velocity from actpas data
@@ -25,9 +39,23 @@ disp(['Actual separability - ' num2str(actual_sep)])
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_handle'}}));
-% [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true));
-[velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl,'do_plot',true));
+
+figure
+subplot(2,3,5)
+[velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true));
+% [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl,'do_plot',true));
 disp(['Velforce separability - ' num2str(velforce_sep)])
+
+% then for directional separability/other view
+subplot(2,3,2)
+hold all
+scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
+scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
+ylim = get(gca,'ylim');
+zlim = get(gca,'zlim');
+set(gca,'box','off','tickdir','out')
+axis equal
+axis off
 
 %% Try fabricating trial_data with linear models based on muscles
 % get models for force and velocity from actpas data
@@ -44,10 +72,24 @@ opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_muscle'}}));
-% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
+
+figure
+subplot(2,3,6)
+[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
 % [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true));
-[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl,'do_plot',true));
+% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl,'do_plot',true));
 disp(['Muscle separability - ' num2str(muscle_sep)])
+
+% then for directional separability/other view
+subplot(2,3,3)
+hold all
+scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
+scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
+ylim = get(gca,'ylim');
+zlim = get(gca,'zlim');
+set(gca,'box','off','tickdir','out')
+axis equal
+axis off
 
 %% get boostrapped separability values
 
