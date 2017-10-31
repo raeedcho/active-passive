@@ -14,15 +14,17 @@ td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',15});
 td_pas = binTD(td_pas,15);
 td = cat(2,td_act,td_pas);
 
+%% set figure savename
+figsave_name = [td(1).monkey '_' datestr(datenum(td(1).date),'yyyymmdd') '_'];
+
 %% test separability for actual spikes
 td = sqrtTransform(td,'S1_spikes');
 % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
 td = getPCA(td,struct('signals',{{'S1_spikes'}}));
 
-figure
-subplot(2,3,4)
+figure(1)
 [actual_sep,actual_mdl] = test_sep(td,struct('signals',{{'S1_pca'}},'do_plot',true));
-disp(['Actual separability - ' num2str(actual_sep)])
+title(['Actual separability - ' num2str(actual_sep)])
 
 % then for directional separability/other view
 [~,td_act] = getTDidx(td,'ctrHoldBump',false);
@@ -33,7 +35,7 @@ signal_pas = cat(1,td_pas.S1_pca);
 bump_colors = linspecer(4);
 act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
 pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
-subplot(2,3,1)
+figure(2)
 hold all
 scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
 scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
@@ -42,6 +44,7 @@ zlim = get(gca,'zlim');
 set(gca,'box','off','tickdir','out')
 axis equal
 axis off
+title 'directional sep'
 
 %% Try fabricating trial_data with linear models based on handle kinematics and force
 % get models for force and velocity from actpas data
@@ -50,30 +53,40 @@ axis off
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_handle'}}));
+% get correlated noise model
+handle_noise_covar = getNoiseCovar(td,struct('actual_signals',{{'S1_spikes'}},'modeled_signals',{{'linmodel_S1_handle'}},...
+                                                'do_plot',false));
+td = addCorrelatedNoise(td,struct('signals',{{'linmodel_S1_handle'}},'noise_covar',handle_noise_covar));
+td = getPCA(td,struct('signals',{{'linmodel_S1_handle_noisy'}}));
 
-subplot(2,3,5)
+figure(3)
 [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca',1:4}},'do_plot',true));
-% [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl,'do_plot',true));
-disp(['Velforce separability - ' num2str(velforce_sep)])
+title(['Velforce separability - ' num2str(velforce_sep)])
+figure(4)
+[velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_pca'}},'mdl',actual_mdl,'do_plot',true));
+title(['Velforce w/ actual disc. separability - ' num2str(velforce_sep)])
+figure(5)
+[velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_handle_noisy_pca'}},'mdl',actual_mdl,'do_plot',true));
+title(['Noisy velforce w/ actual disc. separability - ' num2str(velforce_sep)])
 
-% then for directional separability/other view
-[~,td_act] = getTDidx(td,'ctrHoldBump',false);
-[~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-signal_act = cat(1,td_act.linmodel_S1_handle_pca);
-signal_pas = cat(1,td_pas.linmodel_S1_handle_pca);
-% plot active as filled, passive as open
-bump_colors = linspecer(4);
-act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
-pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
-subplot(2,3,2)
-hold all
-scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
-scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
-ylim = get(gca,'ylim');
-zlim = get(gca,'zlim');
-set(gca,'box','off','tickdir','out')
-axis equal
-axis off
+% % then for directional separability/other view
+% [~,td_act] = getTDidx(td,'ctrHoldBump',false);
+% [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
+% signal_act = cat(1,td_act.linmodel_S1_handle_pca);
+% signal_pas = cat(1,td_pas.linmodel_S1_handle_pca);
+% % plot active as filled, passive as open
+% bump_colors = linspecer(4);
+% act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
+% pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
+% subplot(2,3,2)
+% hold all
+% scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
+% scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
+% ylim = get(gca,'ylim');
+% zlim = get(gca,'zlim');
+% set(gca,'box','off','tickdir','out')
+% axis equal
+% axis off
 
 %% Try fabricating trial_data with linear models based on muscles
 % get models for force and velocity from actpas data
@@ -90,46 +103,48 @@ opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
     'out_signals',{'S1_spikes'}));
 
 td = getPCA(td,struct('signals',{{'linmodel_S1_muscle'}}));
-
-subplot(2,3,6)
-% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
-[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true));
-% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl,'do_plot',true));
-disp(['Muscle separability - ' num2str(muscle_sep)])
-
-% then for directional separability/other view
-[~,td_act] = getTDidx(td,'ctrHoldBump',false);
-[~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-signal_act = cat(1,td_act.linmodel_S1_muscle_pca);
-signal_pas = cat(1,td_pas.linmodel_S1_muscle_pca);
-% plot active as filled, passive as open
-bump_colors = linspecer(4);
-act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
-pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
-subplot(2,3,3)
-hold all
-scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
-scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
-ylim = get(gca,'ylim');
-zlim = get(gca,'zlim');
-set(gca,'box','off','tickdir','out')
-axis equal
-axis off
-
-%% get boostrapped separability values
-
-% get correlated noise models
-handle_noise_covar = getNoiseCovar(td,struct('actual_signals',{{'S1_spikes'}},'modeled_signals',{{'linmodel_S1_handle'}},...
-                                                'do_plot',false));
-td = addCorrelatedNoise(td,struct('signals',{{'linmodel_S1_handle'}},'noise_covar',handle_noise_covar));
-td = getPCA(td,struct('signals',{{'linmodel_S1_handle_noisy'}}));
+% get correlated noise model
 muscle_noise_covar = getNoiseCovar(td,struct('actual_signals',{{'S1_spikes'}},'modeled_signals',{{'linmodel_S1_muscle'}},...
                                                 'do_plot',false));
 td = addCorrelatedNoise(td,struct('signals',{{'linmodel_S1_muscle'}},'noise_covar',muscle_noise_covar));
 td = getPCA(td,struct('signals',{{'linmodel_S1_muscle_noisy'}}));
 
+figure(6)
+% [muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca',1:length(opensim_idx)}},'do_plot',true));
+[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'do_plot',true));
+title(['Muscle separability - ' num2str(muscle_sep)])
+figure(7)
+[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_pca'}},'mdl',actual_mdl,'do_plot',true));
+title(['Muscle w/ actual disc. separability - ' num2str(muscle_sep)])
+figure(8)
+[muscle_sep,muscle_mdl] = test_sep(td,struct('signals',{{'linmodel_S1_muscle_noisy_pca'}},'mdl',actual_mdl,'do_plot',true));
+title(['Noisy muscle w/ actual disc. separability - ' num2str(muscle_sep)])
+
+% % then for directional separability/other view
+% [~,td_act] = getTDidx(td,'ctrHoldBump',false);
+% [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
+% signal_act = cat(1,td_act.linmodel_S1_muscle_pca);
+% signal_pas = cat(1,td_pas.linmodel_S1_muscle_pca);
+% % plot active as filled, passive as open
+% bump_colors = linspecer(4);
+% act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
+% pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
+% subplot(2,3,3)
+% hold all
+% scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
+% scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
+% ylim = get(gca,'ylim');
+% zlim = get(gca,'zlim');
+% set(gca,'box','off','tickdir','out')
+% axis equal
+% axis off
+
+%% get boostrapped separability values
+
+% get correlated noise models
+
 % bootstrap!
-n_boot = 1000;
+n_boot = 10;
 % use actual model for this
 bootsep_true = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'S1_pca'}},'mdl',actual_mdl)),td');
 

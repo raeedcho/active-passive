@@ -13,11 +13,15 @@ end
 % fr_scale = max(fr)-min(fr);
 % norm_fr = (fr-fr_offset)./fr_scale;
 
+
 for i = 1:length(c)
     if all(c{i}~=1)
         patch(v(c{i},1),v(c{i},2),fr(i))
     end
 end
+
+clims = prctile(fr,[5 95]);
+caxis(clims)
 
 set(gca,'xlim',[-pi pi],'ylim',[-pi pi])
 colorbar

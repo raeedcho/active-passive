@@ -1,4 +1,22 @@
-function [fr,thv,thf] = obs_window_pds(td)
+function [fr,thv,thf] = obs_window_pds(td,params)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DEFAULT PARAMETER VALUES
+use_trials      =  1:length(td);
+signals         =  getTDfields(td,'spikes');
+do_plot         =  false;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Some extra parameters you can change that aren't described in header
+if nargin > 1, assignParams(who,params); end % overwrite parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% process and prepare inputs
+signals = check_signals(td(1),signals);
+if iscell(use_trials) % likely to be meta info
+    use_trials = getTDidx(td,use_trials{:});
+end
+
+td = td(use_trials);
+response_var = get_vars(td,signals);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % set up parameters
 Wr = 3; % set window radius
@@ -9,57 +27,52 @@ kMax = 2; % maximum peak curvature
 
 % loop over all trials
 % for trialctr = 1:numel(td)
-    binned_fr = cat(1,td.S1_spikes);
-    unit_idx = td(1).S1_unit_guide(:,2)~=0;
-    binned_fr = binned_fr(:,unit_idx);
-%     pos = td(trialctr).pos;
-    pos = cat(1,td.pos);
-    x = pos - repmat(workspace_center, size(pos,1), 1);
-%     f = td(trialctr).force;
-    f = cat(1,td.force);
-    
-    % extract trajectory through observation window
-    Wf = x(:,1).^2 + x(:,2).^2 < Wr.^2;
-    iStart = find(diff(Wf)>0);
-    iStop  = find(diff(Wf)<0);
-    
-    % A little Kluge to eleminate any partial trajectories at the beginning or
-    % end of the file
-    if iStart(1) > iStop(1)
-        iStop = iStop(2:end);
-    end
+binned_fr = response_var;
+pos = cat(1,td.pos);
+x = pos - repmat(workspace_center, size(pos,1), 1);
+f = cat(1,td.force);
 
-    if length(iStart) > length(iStop)
-        iStart = iStart(1:length(iStop));
-    end
-    
-    % should only be one reach through center, ideally
+% extract trajectory through observation window
+Wf = x(:,1).^2 + x(:,2).^2 < Wr.^2;
+iStart = find(diff(Wf)>0);
+iStop  = find(diff(Wf)<0);
+
+% A little Kluge to eleminate any partial trajectories at the beginning or
+% end of the file
+if iStart(1) > iStop(1)
+    iStop = iStop(2:end);
+end
+
+if length(iStart) > length(iStop)
+    iStart = iStart(1:length(iStop));
+end
+
+% should only be one reach through center, ideally
 %     if(length(iStart)>1)
 %         warning(['Trial number ' num2str(td(trialctr).trial_id) ' has stuttering reach']);
 %     end
-    
-    % Select the paths that we're going to use
-    keepers = true(size(iStart));
-    for i = 1:length(keepers)
-        snip = x(iStart(i):iStop(i), :);
 
-        % Reject paths that are too short
-        steps = diff(snip);
-        len = sum(sqrt(steps(:,1).^2+steps(:,2).^2));
-        keepers(i) = keepers(i) & len > lMin; 
+% Select the paths that we're going to use
+keepers = true(size(iStart));
+for i = 1:length(keepers)
+    snip = x(iStart(i):iStop(i), :);
 
-        % Reject paths that have too high a length to displacement ratio
-        dist = sqrt( (snip(end,1)-snip(1,1)).^2 + (snip(end,2)-snip(1,2)).^2 );
-        keepers(i) = keepers(i) & len/dist < maxLenRat;
+    % Reject paths that are too short
+    steps = diff(snip);
+    len = sum(sqrt(steps(:,1).^2+steps(:,2).^2));
+    keepers(i) = keepers(i) & len > lMin; 
 
-        % Reject paths that have too high a peak curvature
-        k = curvature(snip);
-        if(isempty(k))
-            k=inf;
-        end
-        keepers(i) = keepers(i) & max(abs(k)) < kMax;
+    % Reject paths that have too high a length to displacement ratio
+    dist = sqrt( (snip(end,1)-snip(1,1)).^2 + (snip(end,2)-snip(1,2)).^2 );
+    keepers(i) = keepers(i) & len/dist < maxLenRat;
+
+    % Reject paths that have too high a peak curvature
+    k = curvature(snip);
+    if(isempty(k))
+        k=inf;
     end
-% end
+    keepers(i) = keepers(i) & max(abs(k)) < kMax;
+end
 
 % Plot all paths to inspect our selection algorithm
 % figure; hold on;
@@ -90,10 +103,13 @@ for i = 1:length(thv)
     thf(i) = atan2( mean(f(iStart(i):iStop(i),2)), mean(f(iStart(i):iStop(i),1)) );
     fr(i,:) = sum(binned_fr(iStart(i):iStop(i),:),1)/((iStop(i)-iStart(i))*td(1).bin_size);
 end
-figure;plot(thf,thv,'o')
-set(gca,'box','off','tickdir','out','xtick',[-pi 0 pi],'ytick',[-pi 0 pi],'xticklabel',{'-\pi','0','\pi'},'yticklabel',{'-\pi','0','\pi'})
-xlabel('Force Direction')
-ylabel('Velocity Direction')
+
+if do_plot
+    figure;plot(thf,thv,'o')
+    set(gca,'box','off','tickdir','out','xtick',[-pi 0 pi],'ytick',[-pi 0 pi],'xticklabel',{'-\pi','0','\pi'},'yticklabel',{'-\pi','0','\pi'})
+    xlabel('Force Direction')
+    ylabel('Velocity Direction')
+end
 
 % Plot the tuning curves
 % fr = zeros(length(iStart),length(unit_list(cds)));

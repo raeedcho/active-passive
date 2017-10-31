@@ -1,5 +1,5 @@
 %% extract OOR reaches for R script
-[~,td] = getTDidx(trial_data_OOR,'result','R');
+[~,td] = getTDidx(trial_data,'result','R');
 
 [fr,thv,thf] = obs_window_pds(td);
 
@@ -19,7 +19,7 @@ csvwrite([folder 'Han_20170203_OOR_resid_lin.csv'],[thv thf resid_lin])
 csvwrite([folder 'Han_20170203_OOR_resid_nonlin.csv'],[thv thf resid_non])
 
 %% try removing nonlinear force-velocity combination
-% [~,td] = getTDidx(trial_data_OOR,'result','R');
+% [~,td] = getTDidx(trial_data,'result','R');
 % 
 % [fr,thv,thf] = obs_window_pds(td);
 % 
@@ -39,7 +39,7 @@ csvwrite([folder 'Han_20170203_OOR_resid_nonlin.csv'],[thv thf resid_non])
 % [sep_pred, sep_train_pred] = test_sep(td_actpas_pred);
 
 %% test removal of residual with fine linear model
-[~,td] = getTDidx(trial_data_OOR,'result','R');
+[~,td] = getTDidx(trial_data,'result','R');
 
 % get linear models
 [lin_models] = get_lin_models_from_td(td);
@@ -57,7 +57,7 @@ td_actpas_pred = predict_td_from_models(td_actpas,lin_models);
 [sep_pred, sep_train_pred] = test_sep(td_actpas_pred);
 
 %% check linear models
-[~,td] = getTDidx(trial_data_OOR,'result','R');
+[~,td] = getTDidx(trial_data,'result','R');
 
 [fr,thv,thf] = obs_window_pds(td);
 
@@ -75,7 +75,7 @@ plotDecomposedFR(fr,thv,thf,lin_models,true);
 % plotDecomposedFR(fr,thv,thf,lin_models,false
 
 %% Check linear model extraction
-[~,td] = getTDidx(trial_data_OOR,'result','R');
+[~,td] = getTDidx(trial_data,'result','R');
 
 % [fr,thv,thf] = obs_window_pds(td);
 
