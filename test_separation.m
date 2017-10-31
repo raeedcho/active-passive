@@ -22,6 +22,12 @@ subplot(2,3,4)
 disp(['Actual separability - ' num2str(actual_sep)])
 
 % then for directional separability/other view
+signal_act = get_vars(td_act,{{'S1_pca'}});
+signal_pas = get_vars(td_pas,{{'S1_pca'}});
+% plot active as filled, passive as open
+bump_colors = linspecer(4);
+act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
+pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
 subplot(2,3,1)
 hold all
 scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
@@ -47,6 +53,12 @@ subplot(2,3,5)
 disp(['Velforce separability - ' num2str(velforce_sep)])
 
 % then for directional separability/other view
+signal_act = get_vars(td_act,{{'linmodel_S1_handle_pca'}});
+signal_pas = get_vars(td_pas,{{'linmodel_S1_handle_pca'}});
+% plot active as filled, passive as open
+bump_colors = linspecer(4);
+act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
+pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
 subplot(2,3,2)
 hold all
 scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
@@ -81,6 +93,12 @@ subplot(2,3,6)
 disp(['Muscle separability - ' num2str(muscle_sep)])
 
 % then for directional separability/other view
+signal_act = get_vars(td_act,{{'linmodel_S1_muscle_pca'}});
+signal_pas = get_vars(td_pas,{{'linmodel_S1_muscle_pca'}});
+% plot active as filled, passive as open
+bump_colors = linspecer(4);
+act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
+pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
 subplot(2,3,3)
 hold all
 scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
