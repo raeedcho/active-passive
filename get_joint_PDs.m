@@ -77,7 +77,7 @@ axis equal
 
 % plot all tuning
 figure
-plotAllTuning(opensimCurves,opensimPDs,bins,find(isTuned))
+compareTuning(opensimCurves,opensimPDs,bins,find(isTuned))
 
 
 % plot neuron active tuning against passive tuning (same figure)
@@ -103,5 +103,5 @@ axis equal
 
 % plot all tuning
 figure
-plotAllTuning(spikesCurves,spikesPDs,bins,find(isTuned))
+compareTuning(spikesCurves,spikesPDs,bins,find(isTuned))
 
