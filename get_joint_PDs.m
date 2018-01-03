@@ -39,20 +39,29 @@ spikesCurves{2} = getTuningCurves(td_pas,struct('out_signals',{{'S1_spikes'}},'o
 % save PD tables
 % save('~/Projects/limblab/data-td/ForceKin/Han/20170203/pdtable50.mat','*PDtable*')
 
-% % plot tuning
-% colors = linspecer(length(opensim_idx));
-% h1 = figure;
-% polar(0,maxRad);
-% hold on
-% h2 = figure;
-% polar(0,maxRad);
-% hold on
-% for i = 1:length(opensim_idx)
-%     figure(h1)
-%     plotTuning([],opensimPDs{1}(i,:),[],opensimPDs{1}.velModdepth(i),colors(i,:),'-')
-%     figure(h2)
-%     plotTuning([],opensimPDs{2}(i,:),[],opensimPDs{2}.velModdepth(i),colors(i,:),'--')
-% end
+% get dPDs
+dPD = spikesPDs{2}.velPD-spikesPDs{1}.velPD;
+figure
+h_line = rose(dPD)
+set(h_line,'linewidth',2,'color','k')
+[dPDmean,dPDCIhigh,dPDCIlow] = circ_mean(abs(dPD))
+
+% get PD correlations
+
+% plot tuning
+colors = linspecer(length(opensim_idx));
+h1 = figure;
+polar(0,maxRad);
+hold on
+h2 = figure;
+polar(0,maxRad);
+hold on
+for i = 1:length(opensim_idx)
+    figure(h1)
+    plotTuning([],opensimPDs{1}(i,:),[],opensimPDs{1}.velModdepth(i),colors(i,:),'-')
+    figure(h2)
+    plotTuning([],opensimPDs{2}(i,:),[],opensimPDs{2}.velModdepth(i),colors(i,:),'--')
+end
 
 % plot muscle active tuning against passive tuning
 isTuned_params = struct('move_corr','vel','CIthresh',pi/4);
@@ -86,11 +95,11 @@ isTuned_params = struct('move_corr','vel','CIthresh',pi/3);
 isTuned = checkIsTuned(spikesPDs{1},isTuned_params)...
             & checkIsTuned(spikesPDs{2},isTuned_params);
 subplot(1,2,1)
-errorbar(spikesPDs{1}.velDir(isTuned),spikesPDs{2}.velDir(isTuned),...
-        (spikesPDs{2}.velDir(isTuned)-spikesPDs{2}.velDirCI(isTuned,1)),...
-        (spikesPDs{2}.velDirCI(isTuned,1)-spikesPDs{2}.velDir(isTuned)),...
-        (spikesPDs{1}.velDir(isTuned)-spikesPDs{1}.velDirCI(isTuned,1)),...
-        (spikesPDs{1}.velDirCI(isTuned,1)-spikesPDs{1}.velDir(isTuned)),...
+errorbar(spikesPDs{1}.velPD(isTuned),spikesPDs{2}.velPD(isTuned),...
+        (spikesPDs{2}.velPD(isTuned)-spikesPDs{2}.velPDCI(isTuned,1)),...
+        (spikesPDs{2}.velPDCI(isTuned,1)-spikesPDs{2}.velPD(isTuned)),...
+        (spikesPDs{1}.velPD(isTuned)-spikesPDs{1}.velPDCI(isTuned,1)),...
+        (spikesPDs{1}.velPDCI(isTuned,1)-spikesPDs{1}.velPD(isTuned)),...
         'mo','linewidth',2)
 hold on
 plot([-pi pi],[-pi pi],'--k','linewidth',2)
