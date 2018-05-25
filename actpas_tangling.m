@@ -11,10 +11,12 @@
     td_act = td_act(~nanners);
     % td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_movement_on',30});
     td_act = trimTD(td_act,{'idx_movement_on',0},{'idx_endTime',0});
+    td_act = binTD(td_act,5);
 
     % trim passive
     [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
     td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',30});
+    td_pas = binTD(td_pas,5);
 
     % put active and passive back together
     td = cat(2,td_act,td_pas);
@@ -23,8 +25,8 @@
     S1_tangle_struct = struct('A',{td_act.S1_FR});
     EMG_tangle_struct = struct('A',{td_act.emg});
 
-    [Q_S1,out_S1] = tangleAnalysis(S1_tangle_struct,0.01,'softenNorm',1);
-    [Q_EMG,out_EMG] = tangleAnalysis(EMG_tangle_struct,0.01,'softenNorm',0);
+    [Q_S1,out_S1] = tangleAnalysis(S1_tangle_struct,0.05,'softenNorm',1);
+    [Q_EMG,out_EMG] = tangleAnalysis(EMG_tangle_struct,0.05,'softenNorm',0);
 
 %% Scatter plot...
     figure
