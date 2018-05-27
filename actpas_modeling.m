@@ -46,38 +46,96 @@
     % clean up
     clearvars -except trial_data td
 
-%% Try fabricating trial_data with linear models based on muscles
+%% Examine efficacy of a hybrid active/passive model against individual models
     % get models for force and velocity from actpas data
     % opensim_idx = find(contains(td(1).opensim_names,'_moment'));
     % opensim_idx = find(contains(td(1).opensim_names,'_vel'));
     opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
+    td = getPCA(td,struct('signals',{{'opensim',opensim_idx}},'do_plot',true));
     % opensim_idx = find(contains(td(1).opensim_names,'_vel') & ~contains(td(1).opensim_names,'wrist') & ~contains(td(1).opensim_names,'radial'));
     % opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
     % opensim_idx = find(contains(td(1).opensim_names,'_vel') | contains(td(1).opensim_names,'_moment'));
     % opensim_idx = find( (contains(td(1).opensim_names,'_vel') | contains(td(1).opensim_names,'_moment')) & ~contains(td(1).opensim_names,'wrist') & ~contains(td(1).opensim_names,'radial'));
     % get active and passive trial indices
-    active_trials = getTDidx(td,'ctrHoldBump',false);
-    passive_trials = getTDidx(td,'ctrHoldBump',true);
+    [~,td_act] = getTDidx(td,'ctrHoldBump',false);
+    [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
+    [train_act,test_act] = crossvalind('HoldOut',length(td_act),0.5);
+    [train_pas,test_pas] = crossvalind('HoldOut',length(td_pas),0.5);
+    td_train_act = td_act(train_act);
+    td_train_pas = td_pas(train_pas);
+    td_test_act = td_act(test_act);
+    td_test_pas = td_pas(test_pas);
+    td_train = [td_train_act td_train_pas];
+    td_test = [td_test_act td_test_pas];
 
-    [td,model_info_full] = getModel(td,struct('model_type','glm',...
-        'model_name','S1_muscle','in_signals',...
-        {{'opensim',opensim_idx}},...
+    % first try training on active and testing on active and passive
+    [td_train_act,act_model] = getModel(td_train_act,struct('model_type','glm',...
+        'model_name','S1_act','in_signals',...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'}));
-    [td,model_info_act] = getModel(td,struct('model_type','glm',...
-        'model_name','S1_muscle_act','in_signals',...
-        {{'opensim',opensim_idx}},...
-        'out_signals',{'S1_FR'},'train_idx',active_trials));
-    [td,model_info_pas] = getModel(td,struct('model_type','glm',...
-        'model_name','S1_muscle_pas','in_signals',...
-        {{'opensim',opensim_idx}},...
-        'out_signals',{'S1_FR'},'train_idx',passive_trials));
+    act_model.eval_metric = 'pr2';
+    act_model.num_boots = 1;
+    td_test_act = getModel(td_test_act,act_model);
+    act_within_pR2 = evalModel(td_test_act,act_model);
+    td_test_pas = getModel(td_test_pas,act_model);
+    act_across_pR2 = evalModel(td_test_pas,act_model);
 
-    [td_act,model_info_act] = getModel(td(active_trials),struct('model_type','glm',...
-        'model_name','S1_muscle_combined','in_signals',...
-        {{'opensim',opensim_idx}},...
+    % then train on passive
+    [td_train_pas,pas_model] = getModel(td_train_pas,struct('model_type','glm',...
+        'model_name','S1_pas','in_signals',...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'}));
-    [td_pas,model_info_pas] = getModel(td(passive_trials),struct('model_type','glm',...
-        'model_name','S1_muscle_combined','in_signals',...
-        {{'opensim',opensim_idx}},...
+    pas_model.eval_metric = 'pr2';
+    pas_model.num_boots = 1;
+    td_test_act = getModel(td_test_act,pas_model);
+    pas_across_pR2 = evalModel(td_test_act,pas_model);
+    td_test_pas = getModel(td_test_pas,pas_model);
+    pas_within_pR2 = evalModel(td_test_pas,pas_model);
+
+    % then some sort of hybrid...
+    [td_train,hybrid_model] = getModel(td_train,struct('model_type','glm',...
+        'model_name','S1_hybrid','in_signals',...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'}));
-    td = [td_act,td_pas];
+    hybrid_model.eval_metric = 'pr2';
+    hybrid_model.num_boots = 1;
+    td_test_act = getModel(td_test_act,hybrid_model);
+    hybrid_act_pR2 = evalModel(td_test_act,hybrid_model);
+    td_test_pas = getModel(td_test_pas,hybrid_model);
+    hybrid_pas_pR2 = evalModel(td_test_pas,hybrid_model);
+
+    % plot them against each other
+    figure
+    scatter(act_within_pR2,pas_within_pR2,'filled')
+    hold on
+    plot([-0.05 0.2],[-0.05 0.2],'k--','linewidth',2)
+    plot([0 0],[-0.05 0.2],'k-','linewidth',2)
+    plot([-0.05 0.2],[0 0],'k-','linewidth',2)
+    set(gca,'box','off','tickdir','out','xlim',[-0.05 0.2],'ylim',[-0.05 0.2])
+    axis equal
+    xlabel 'Active pR^2'
+    ylabel 'Passive pR^2'
+    % figure
+    % scatter(act_within_pR2,act_across_pR2,'filled')
+    % hold on
+    % plot([-0.05 0.2],[-0.05 0.2],'k--','linewidth',2)
+    % plot([0 0],[-0.05 0.2],'k-','linewidth',2)
+    % plot([-0.05 0.2],[0 0],'k-','linewidth',2)
+    % set(gca,'box','off','tickdir','out','xlim',[-0.05 0.2],'ylim',[-0.05 0.2])
+    % figure
+    % scatter(pas_within_pR2,pas_across_pR2,'filled')
+    % hold on
+    % plot([-0.05 0.2],[-0.05 0.2],'k--','linewidth',2)
+    % plot([0 0],[-0.05 0.2],'k-','linewidth',2)
+    % plot([-0.05 0.2],[0 0],'k-','linewidth',2)
+    % set(gca,'box','off','tickdir','out','xlim',[-0.05 0.2],'ylim',[-0.05 0.2])
+    figure
+    scatter(hybrid_act_pR2,hybrid_pas_pR2,'filled')
+    hold on
+    plot([-0.05 0.2],[-0.05 0.2],'k--','linewidth',2)
+    plot([0 0],[-0.05 0.2],'k-','linewidth',2)
+    plot([-0.05 0.2],[0 0],'k-','linewidth',2)
+    set(gca,'box','off','tickdir','out','xlim',[-0.05 0.2],'ylim',[-0.05 0.2])
+    axis equal
+    xlabel 'Active pR^2'
+    ylabel 'Passive pR^2'

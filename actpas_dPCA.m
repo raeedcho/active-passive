@@ -62,37 +62,72 @@
     % td_pas_avg = td(passive_trials);
 
     signal = 'S1_spikes';
+    signal = 'glm_S1_muscle';
+    W = dPCA_info.W(:,[2 5 3]);
+    W = musc_dpca.W(:,[1 4 3]);
     mean_spikes = mean(cat(1,td.(signal)));
-    figure
     dir_colors = linspecer(4);
     num_bins = 68;
+    fignum = figure;
+    % animation stuff
+    scatter(randn(1,4),randn(1,4),[],dir_colors,'filled')
+    f = getframe(fignum);
+    [im,map] = rgb2ind(f.cdata,256,'nodither');
+    im(1,1,1,num_bins) = 0;
+    % set(gca,'visible','off')
     for time = 1:num_bins
         clf
         for trial = 1:length(td_pas_avg)
             X = td_pas_avg(trial).(signal);
             Xcen = X-mean_spikes;
-            Z = Xcen * dPCA_info.W(:,[2 5 3]);
+            Z = Xcen * W;
     
             dir_idx = td_pas_avg(trial).bumpDir/90+1;
-            plot3(Z(1:time,1),Z(1:time,2),Z(1:time,3),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+
+            subplot(1,2,1)
+            plot(Z(1:time,1),Z(1:time,2),'--','linewidth',2,'color',dir_colors(dir_idx,:))
             hold on
-            plot3(Z(time,1),Z(time,2),Z(time,3),'o','markersize',20,'color',dir_colors(dir_idx,:))
+            plot(Z(time,1),Z(time,2),'x','markersize',10,'color',dir_colors(dir_idx,:))
+
+            subplot(1,2,2)
+            plot(Z(1:time,1),Z(1:time,3),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+            hold on
+            plot(Z(time,1),Z(time,3),'x','markersize',10,'color',dir_colors(dir_idx,:))
         end
         for trial = 1:length(td_act_avg)
             X = td_act_avg(trial).(signal);
             Xcen = X-mean_spikes;
-            Z = Xcen * dPCA_info.W(:,[2 5 3]);
+            Z = Xcen * W;
     
             dir_idx = td_act_avg(trial).target_direction/(pi/2)+1;
             dir_idx = round(dir_idx);
-            plot3(Z(1:time,1),Z(1:time,2),Z(1:time,3),'-','linewidth',2,'color',dir_colors(dir_idx,:))
+
+            subplot(1,2,1)
+            plot(Z(1:time,1),Z(1:time,2),'-','linewidth',2,'color',dir_colors(dir_idx,:))
             hold on
-            plot3(Z(time,1),Z(time,2),Z(time,3),'.','markersize',40,'color',dir_colors(dir_idx,:))
+            plot(Z(time,1),Z(time,2),'.','markersize',40,'color',dir_colors(dir_idx,:))
+
+            subplot(1,2,2)
+            plot(Z(1:time,1),Z(1:time,3),'-','linewidth',2,'color',dir_colors(dir_idx,:))
+            hold on
+            plot(Z(time,1),Z(time,3),'.','markersize',40,'color',dir_colors(dir_idx,:))
         end
+        subplot(1,2,1)
+        axis equal
         axis([-30 30 -30 30 -30 30])
-        view([0 0])
+        set(gca,'box','off','tickdir','out')
+        subplot(1,2,2)
+        axis equal
+        axis([-30 30 -30 30 -30 30])
+        set(gca,'box','off','tickdir','out')
+
+        % get animation pieces
+        f = getframe(fignum);
+        im(:,:,1,time) = rgb2ind(f.cdata,map,'nodither');
+
         pause(0.1)
     end
+    imwrite(im,map,'test.gif','DelayTime',0,'LoopCount',0)
 
 %% Try fabricating trial_data with linear models based on handle kinematics and force
     % get models for force and velocity from actpas data
@@ -109,6 +144,7 @@
     % opensim_idx = find(contains(td(1).opensim_names,'_moment'));
     % opensim_idx = find(contains(td(1).opensim_names,'_vel'));
     opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
+    td = getPCA(td,struct('signals',{{'opensim',opensim_idx}},'do_plot',false));
     % opensim_idx = find(contains(td(1).opensim_names,'_vel') & ~contains(td(1).opensim_names,'wrist') & ~contains(td(1).opensim_names,'radial'));
     % opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
     % opensim_idx = find(contains(td(1).opensim_names,'_vel') | contains(td(1).opensim_names,'_moment'));
@@ -118,15 +154,15 @@
     passive_trials = getTDidx(td,'ctrHoldBump',true);
     [td,model_info_full] = getModel(td,struct('model_type','linmodel',...
         'model_name','S1_muscle','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'}));
     [td,model_info_act] = getModel(td,struct('model_type','linmodel',...
         'model_name','S1_muscle_act','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'},'train_idx',active_trials));
     [td,model_info_pas] = getModel(td,struct('model_type','linmodel',...
         'model_name','S1_muscle_pas','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'},'train_idx',passive_trials));
     
     % project into original dPCA space
@@ -148,29 +184,29 @@
 
     [td,model_info_full] = getModel(td,struct('model_type','glm',...
         'model_name','S1_muscle','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'}));
     [td,model_info_act] = getModel(td,struct('model_type','glm',...
         'model_name','S1_muscle_act','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'},'train_idx',active_trials));
     [td,model_info_pas] = getModel(td,struct('model_type','glm',...
         'model_name','S1_muscle_pas','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'},'train_idx',passive_trials));
 
     [td_act,model_info_act] = getModel(td(active_trials),struct('model_type','glm',...
         'model_name','S1_muscle_combined','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'}));
     [td_pas,model_info_pas] = getModel(td(passive_trials),struct('model_type','glm',...
         'model_name','S1_muscle_combined','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{'S1_FR'}));
     td = [td_act,td_pas];
     
     % project into original dPCA space
-    getDPCA(td,'target_direction','ctrHoldBump',struct('signals',{{'glm_S1_muscle'}},'num_dims',8,'do_plot',true,...
+    [~,musc_dpca] = getDPCA(td,'target_direction','ctrHoldBump',struct('signals',{{'glm_S1_muscle'}},'num_dims',8,'do_plot',true,...
                                                                         'marg_names',{{'time','direction','active/passive','direction/dynamics interaction'}},...
                                                                         'dpca_plot_fcn',@dpca_plot_actpas));
     getDPCA(td,'target_direction','ctrHoldBump',struct('signals',{{'glm_S1_muscle'}},'num_dims',8,'do_plot',true,...
