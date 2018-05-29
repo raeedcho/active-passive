@@ -139,3 +139,22 @@
     axis equal
     xlabel 'Active pR^2'
     ylabel 'Passive pR^2'
+
+%% Look at average movement speed in active and passive
+    % average TD
+    td_avg = trialAverage(td,{'target_direction','ctrHoldBump'});
+
+    % get speed
+    td_avg = getSpeed(td_avg);
+
+    % make plots
+    figure
+    dir_colors = linspecer(4);
+    for i = 1:4
+        subplot(4,1,i)
+        time_vec = 0:length(td_avg(i).speed)-1;
+        time_vec = time_vec*td_avg(i).bin_size;
+        plot(time_vec,td_avg(i).speed,'-','linewidth',2,'color',dir_colors(i,:))
+        hold on
+        plot(time_vec,td_avg(i+4).speed,'--','linewidth',2,'color',dir_colors(i,:))
+    end
