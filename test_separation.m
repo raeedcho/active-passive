@@ -15,7 +15,7 @@
     td = cat(2,td_act,td_pas);
 
 %% set figure savename
-    figsave_name = [td(1).monkey '_' datestr(datenum(td(1).date),'yyyymmdd') '_'];
+    % figsave_name = [td(1).monkey '_' datestr(datenum(td(1).date),'yyyymmdd') '_'];
 
 %% get splits on array
     if exist('ant_chans','var')
@@ -107,9 +107,10 @@
     % opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
     % opensim_idx = find(contains(td(1).opensim_names,'_vel') | contains(td(1).opensim_names,'_moment'));
     % opensim_idx = find( (contains(td(1).opensim_names,'_vel') | contains(td(1).opensim_names,'_moment')) & ~contains(td(1).opensim_names,'wrist') & ~contains(td(1).opensim_names,'radial'));
+    td = getPCA(td,struct('signals',{{'opensim',opensim_idx}},'do_plot',false));
     [td,model_info] = getModel(td,struct('model_type','linmodel',...
         'model_name','S1_muscle','in_signals',...
-        {{'opensim',opensim_idx}},...
+        {{'opensim_pca',1:6}},...
         'out_signals',{{'S1_spikes'}}));
     
     td = getPCA(td,struct('signals',{{'linmodel_S1_muscle'}}));
