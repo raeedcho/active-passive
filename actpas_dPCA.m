@@ -54,7 +54,7 @@
     cm_viridis = viridis(200);
 
 %% try dPCA
-    [td,dPCA_info] = getDPCA(td,'target_direction','ctrHoldBump',struct('signals',{{'S1_spikes'}},'num_dims',8,'do_plot',true,...
+    [td,dPCA_info] = getDPCA(td,'target_direction','ctrHoldBump',struct('signals',{{'S1_spikes'}},'num_dims',6,'do_plot',true,...
                                                                         'marg_names',{{'time','direction','active/passive','direction/dynamics interaction'}},...
                                                                         'dpca_plot_fcn',@dpca_plot_actpas));
     
@@ -147,10 +147,58 @@
     %                                                                     'marg_names',{{'time','direction','active/passive','direction/dynamics interaction'}},...
     %                                                                     'dpca_plot_fcn',@dpca_plot_actpas));
 
+%% Test out model methods on joints to muscle
+    % spoiler...it works really well
+    % get covariates to base simulated neurons on
+    musc_idx = find(contains(td(1).opensim_names,'_muscVel'));
+    joint_idx = find(contains(td(1).opensim_names,'_vel'));
+    td = getPCA(td,struct('signals',{{'opensim',musc_idx}},'do_plot',false));
+
+    % model type for later use...
+    model_type = 'nn';
+
+    % models
+    td = getModel(td,struct('model_type',model_type,...
+        'model_name','joint_musc','in_signals',...
+        {{'opensim',joint_idx}},...
+        'out_signals',{{'opensim_pca',1:6}}));
+
+    % split td and average
+    td_avg = trialAverage(td,{'ctrHoldBump','target_direction'});
+    [~,td_act] = getTDidx(td_avg,'ctrHoldBump',false);
+    [~,td_pas] = getTDidx(td_avg,'ctrHoldBump',true);
+
+    % plot for each neuron
+    dir_colors = linspecer(4);
+    for musc_idx = 1:6
+        h=figure;
+        ax = zeros(2,1);
+        for dir_idx = 1:length(td_act)
+            ax(1) = subplot(4,2,(dir_idx-1)*2+1);
+            plot(td_act(dir_idx).opensim_pca(:,musc_idx),'-','linewidth',2,'color',dir_colors(dir_idx,:))
+            hold on
+            plot(td_act(dir_idx).nn_joint_musc(:,musc_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+            % plot(td_act(dir_idx).S1_FR(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+            axis tight
+            set(gca,'box','off','tickdir','out')
+
+            ax(2) = subplot(4,2,(dir_idx-1)*2+2);
+            plot(td_pas(dir_idx).opensim_pca(:,musc_idx),'-','linewidth',2,'color',dir_colors(dir_idx,:))
+            hold on
+            plot(td_pas(dir_idx).nn_joint_musc(:,musc_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+            % plot(td_pas(dir_idx).S1_FR(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+            axis tight
+            set(gca,'box','off','tickdir','out')
+        end
+        linkaxes(ax,'xy')
+        waitfor(h)
+    end
+
 %% Try fabricating trial_data with linear models based on muscles
     % get covariates to base simulated neurons on
-    opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
-    td = getPCA(td,struct('signals',{{'opensim',opensim_idx}},'do_plot',false));
+    joint_idx = find(contains(td(1).opensim_names,'_vel'));
+    % opensim_idx = find(contains(td(1).opensim_names,'_muscVel'));
+    % td = getPCA(td,struct('signals',{{'opensim',opensim_idx}},'do_plot',false));
     % get dpca for muscle velocity signals
     [~,muscVel_dPCA] = getDPCA(td,'target_direction','ctrHoldBump',struct('signals',{{'opensim_pca'}},'num_dims',8,'do_plot',true,...
                                                                         'marg_names',{{'time','direction','active/passive','direction/dynamics interaction'}},...
@@ -164,13 +212,21 @@
     model_type = 'nn';
 
     % glms
-    [td,model_info_full] = getModel(td,struct('model_type',model_type,...
-        'model_name','S1_muscle','in_signals',...
-        {{'opensim_pca',1:6}},...
-        'out_signals',{'S1_FR'}));
+    % [td,model_info_full] = getModel(td,struct('model_type',model_type,...
+    %     'model_name','S1_muscle','in_signals',...
+    %     {{'opensim',joint_idx}},...
+    %     'out_signals',{'S1_FR'}));
     [td,~] = getModel(td,struct('model_type',model_type,...
-        'model_name','S1_muscle_smooth','in_signals',...
-        {{'opensim_pca',1:6}},...
+        'model_name','S1_joint_smooth','in_signals',...
+        {{'opensim',joint_idx}},...
+        'out_signals',{'S1_spikes'}));
+    [td_act,~] = getModel(td(active_trials),struct('model_type',model_type,...
+        'model_name','S1_joint_act','in_signals',...
+        {{'opensim',joint_idx}},...
+        'out_signals',{'S1_spikes'}));
+    [td_pas,~] = getModel(td(passive_trials),struct('model_type',model_type,...
+        'model_name','S1_joint_pas','in_signals',...
+        {{'opensim',joint_idx}},...
         'out_signals',{'S1_spikes'}));
     % [td,model_info_act] = getModel(td,struct('model_type',model_type,...
     %     'model_name','S1_muscle_act','in_signals',...
@@ -213,32 +269,37 @@
 
 %% Plot average neural firing rates against muscle-based predictions
     % split td and average
-    td_avg = trialAverage(td,{'ctrHoldBump','target_direction'});
-    [~,td_act] = getTDidx(td_avg,'ctrHoldBump',false);
-    [~,td_pas] = getTDidx(td_avg,'ctrHoldBump',true);
+    % td_avg = trialAverage(td,{'ctrHoldBump','target_direction'});
+    % [~,td_act] = getTDidx(td_avg,'ctrHoldBump',false);
+    % [~,td_pas] = getTDidx(td_avg,'ctrHoldBump',true);
+    td_act_avg = trialAverage(td_act,{'ctrHoldBump','target_direction'});
+    td_pas_avg = trialAverage(td_pas,{'ctrHoldBump','target_direction'});
 
     % plot for each neuron
     dir_colors = linspecer(4);
     for neuron_idx = 1:size(td(1).S1_spikes,2)
         h=figure;
-        ylim = [0 max(get_vars(td_avg,{'S1_spikes',neuron_idx}))];
-        for dir_idx = 1:length(td_act)
-            subplot(4,2,(dir_idx-1)*2+1)
-            plot(td_act(dir_idx).S1_spikes(:,neuron_idx),'-','linewidth',2,'color',dir_colors(dir_idx,:))
+        % ylim = [0 max(get_vars(td_avg,{'S1_spikes',neuron_idx}))];
+        for dir_idx = 1:length(td_act_avg)
+            ax((dir_idx-1)*2+1) = subplot(4,2,(dir_idx-1)*2+1);
+            plot(td_act_avg(dir_idx).S1_spikes(:,neuron_idx),'-','linewidth',2,'color',dir_colors(dir_idx,:))
             hold on
-            plot(td_act(dir_idx).nn_S1_muscle_smooth(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+            plot(td_act_avg(dir_idx).nn_S1_joint_smooth(:,neuron_idx),'-.','linewidth',2,'color',dir_colors(dir_idx,:))
+            plot(td_act_avg(dir_idx).nn_S1_joint_act(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
             % plot(td_act(dir_idx).S1_FR(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
             axis tight
-            set(gca,'box','off','tickdir','out','ylim',ylim)
+            set(gca,'box','off','tickdir','out')
 
-            subplot(4,2,(dir_idx-1)*2+2)
-            plot(td_pas(dir_idx).S1_spikes(:,neuron_idx),'-','linewidth',2,'color',dir_colors(dir_idx,:))
+            ax((dir_idx-1)*2+2) = subplot(4,2,(dir_idx-1)*2+2);
+            plot(td_pas_avg(dir_idx).S1_spikes(:,neuron_idx),'-','linewidth',2,'color',dir_colors(dir_idx,:))
             hold on
-            plot(td_pas(dir_idx).nn_S1_muscle_smooth(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
+            plot(td_pas_avg(dir_idx).nn_S1_joint_smooth(:,neuron_idx),'-.','linewidth',2,'color',dir_colors(dir_idx,:))
+            plot(td_pas_avg(dir_idx).nn_S1_joint_pas(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
             % plot(td_pas(dir_idx).S1_FR(:,neuron_idx),'--','linewidth',2,'color',dir_colors(dir_idx,:))
             axis tight
-            set(gca,'box','off','tickdir','out','ylim',ylim)
+            set(gca,'box','off','tickdir','out')
         end
+        linkaxes(ax,'xy')
         waitfor(h)
     end
 
@@ -479,9 +540,87 @@
     subplot(2,1,1)
     bar([var_act;var_cross_act]')
     set(gca,'box','off','tickdir','out')
+    ylabel '% VAF'
+    title 'Active subspace projection VAF by principle component'
     subplot(2,1,2)
     bar([var_pas;var_cross_pas]')
     set(gca,'box','off','tickdir','out')
+    ylabel '% VAF'
+    xlabel 'Component number'
+    title 'Passive subspace projection VAF by principle component'
+
+
+    figure
+    subplot(2,1,1)
+    plot(cumsum([var_act;var_cross_act]'),'linewidth',2)
+    set(gca,'box','off','tickdir','out','ylim',[0 1],'xlim',[1 length(var_act)])
+    ylabel '% VAF'
+    title 'Passive subspace projection cumulative VAF by principle component'
+    subplot(2,1,2)
+    plot(cumsum([var_pas;var_cross_pas]'),'linewidth',2)
+    set(gca,'box','off','tickdir','out','ylim',[0 1],'xlim',[1 length(var_act)])
+    ylabel '% VAF'
+    xlabel 'Component number'
+    title 'Passive subspace projection cumulative VAF by principle component'
+
+    % get principle angles between subspaces
+    num_dim = 7;
+    basis_act = pca_act.w(:,1:num_dim);
+    basis_pas = pca_pas.w(:,1:num_dim);
+    
+    % Get principle angles with SVD
+    neural_angles = principal_angles(basis_act,basis_pas);
+
+    % bootstrap to get angles for within conditions
+    num_boots = 1000;
+    act_angles_boot = zeros(num_dim,num_boots);
+    pas_angles_boot = zeros(num_dim,num_boots);
+    for bootnum = 1:num_boots
+        % sample trials from td_act and td_pas
+        [idx_a,idx_b] = crossvalind('holdout',length(td_act),0.5);
+        td_act_a = td_act(idx_a);
+        td_act_b = td_act(idx_b);
+        [idx_a,idx_b] = crossvalind('holdout',length(td_pas),0.5);
+        td_pas_a = td_pas(idx_a);
+        td_pas_b = td_pas(idx_b);
+
+        % calculate PCA
+        [~,pca_act_a] = getPCA(td_act_a,struct('signals',{{'S1_spikes'}},'do_plot',false));
+        [~,pca_act_b] = getPCA(td_act_b,struct('signals',{{'S1_spikes'}},'do_plot',false));
+        [~,pca_pas_a] = getPCA(td_pas_a,struct('signals',{{'S1_spikes'}},'do_plot',false));
+        [~,pca_pas_b] = getPCA(td_pas_b,struct('signals',{{'S1_spikes'}},'do_plot',false));
+
+        % get basis vectors
+        basis_act_a = pca_act_a.w(:,1:num_dim);
+        basis_act_b = pca_act_b.w(:,1:num_dim);
+        basis_pas_a = pca_pas_a.w(:,1:num_dim);
+        basis_pas_b = pca_pas_b.w(:,1:num_dim);
+
+        % calculte principal angles
+        act_angles_boot(:,bootnum) = principal_angles(basis_act_a,basis_act_b);
+        pas_angles_boot(:,bootnum) = principal_angles(basis_pas_a,basis_pas_b);
+    end
+
+    act_angles_CI = prctile(act_angles_boot,[2.5 97.5],2);
+    pas_angles_CI = prctile(pas_angles_boot,[2.5 97.5],2);
+    act_angles_patch = [act_angles_CI(:,1); flipud(act_angles_CI(:,2))];
+    pas_angles_patch = [pas_angles_CI(:,1); flipud(pas_angles_CI(:,2))];
+    num_patch = [1:7 7:-1:1]';
+    
+    % plot angles
+    figure
+    p = patch(num_patch,act_angles_patch,'b');
+    set(p,'facealpha',0.5)
+    hold on
+    p = patch(num_patch,pas_angles_patch,'y');
+    set(p,'facealpha',0.5)
+    plot(1:7,neural_angles,'-k','linewidth',2)
+    set(gca,'box','off','tickdir','out')
+    xlabel 'Component number'
+    ylabel 'Angle (rad)'
+    title 'Principal angles between active and passive'
+    legend('Within Active','Within Passive','Active vs. Passive')
+
 
 %% get pairwise corr in the two epochs
     % split td and trim to only post movement/bump epoch
