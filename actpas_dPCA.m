@@ -428,6 +428,13 @@
     title 'Principal angles between active and passive'
     legend('Within Active','Within Passive','Active vs. Passive')
 
+    % Calculate angles between first two PCs of active and passive
+    crit_angle = acosd(3.3/sqrt(size(basis_act,1)));
+    angle1to1 = acosd(basis_act(:,1)'*basis_pas(:,1));
+    angle2to2 = acosd(basis_act(:,2)'*basis_pas(:,2));
+    angle1to2 = acosd(basis_act(:,1)'*basis_pas(:,2));
+    angle2to1 = acosd(basis_act(:,2)'*basis_pas(:,1));
+
 %% Elsayed-style correlation space plots
     %% get pairwise corr in the two epochs
     % split td and trim to only post movement/bump epoch
