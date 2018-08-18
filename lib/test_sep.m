@@ -48,9 +48,11 @@ sep_train = sum(class_train == actpas(train_idx))/sum(train_idx);
 
 if do_plot
     % plot active as filled, passive as open
-    bump_colors = linspecer(4);
-    act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
-    pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
+    % bump_colors = linspecer(4);
+    % act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
+    % pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
+    act_color = [114 191 111]/256;
+    pas_color = [88 137 176]/256;
     
     w = mdl.Sigma\diff(mdl.Mu)';
     signal_sep = signal*w;
@@ -62,13 +64,14 @@ if do_plot
 
     % plot for act/pas separability
     hold all
-    scatter3(signal_sep(actpas==1),signal_null_sep_scores(actpas==1,1),signal_null_sep_scores(actpas==1,2),50,bump_colors(act_dir_idx,:),'filled')
-    scatter3(signal_sep(actpas==0),signal_null_sep_scores(actpas==0,1),signal_null_sep_scores(actpas==0,2),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
+    scatter3(signal_sep(actpas==1),signal_null_sep_scores(actpas==1,1),signal_null_sep_scores(actpas==1,2),100,act_color,'filled')
+    scatter3(signal_sep(actpas==0),signal_null_sep_scores(actpas==0,1),signal_null_sep_scores(actpas==0,2),100,pas_color,'filled')
     ylim = get(gca,'ylim');
     zlim = get(gca,'zlim');
     plot3([0 0],ylim,[0 0],'--k','linewidth',2)
     plot3([0 0],[0 0],zlim,'--k','linewidth',2)
     set(gca,'box','off','tickdir','out')
     view([0 0])
+    axis equal
     axis off
 end
