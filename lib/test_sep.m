@@ -1,9 +1,26 @@
 function [separability,mdl] = test_sep(td,params)
+% TEST_SEP uses LDA to classify active and passive trials from signals
+% Inputs:
+%   td - trial_data structure
+%   params - params struct
+%       use_trials - use these trials to calculate model
+%       signals - signals to use for LDA
+%       do_plot - whether to plot separability plot
+%       mdl - if not empty, will use this model instead of fitting
+%           a new one
+% Outputs:
+%   separability - classification accuracy of LDA on signals
+%   mdl - output model from LDA fitting
+%
+% Note: does not cross-validate by itself. If you want crossval, fit
+% a model with training data, then pass in test data along with the
+% model into params.mdl
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DEFAULT PARAMETER VALUES
 use_trials      =  1:length(td);
 signals         =  getTDfields(td,'spikes');
 do_plot         =  false;
+fig_handle      = [];
 mdl             =  [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Some extra parameters you can change that aren't described in header
@@ -17,14 +34,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 signals = check_signals(td,signals);
 
-% ideally, this would work like trialAverage, where the function would take in a condition
+% ideally, this would work like trialAverage, where the function would take
+% in a condition
 % But...I'm not sure how to deal with more than two values for the condition
 [~,td_act] = getTDidx(td,'ctrHoldBump',false);
 [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-
-% clean nans out...?
-nanners = isnan(cat(1,td_act.target_direction));
-td_act = td_act(~nanners);
 
 signal_act = get_vars(td_act,signals);
 signal_pas = get_vars(td_pas,signals);
@@ -32,21 +46,21 @@ signal_pas = get_vars(td_pas,signals);
 % Find total separability
 signal = cat(1,signal_act,signal_pas);
 actpas = [ones(length(signal_act),1);zeros(length(signal_pas),1)];
-[train_idx,test_idx] = crossvalind('LeaveMOut',length(actpas),floor(length(actpas)/10));
 
 % get model
 if isempty(mdl)
-    mdl = fitcdiscr(signal(train_idx,:),actpas(train_idx));
+    mdl = fitcdiscr(signal,actpas);
 end
-class = predict(mdl,signal(test_idx,:));
-separability = sum(class == actpas(test_idx))/sum(test_idx);
-
-class_train = predict(mdl,signal(train_idx,:));
-sep_train = sum(class_train == actpas(train_idx))/sum(train_idx);
-
-
+class = predict(mdl,signal);
+separability = sum(class == actpas)/length(actpas);
 
 if do_plot
+    if ~isempty(fig_handle)
+        figure(fig_handle)
+        hold on
+    else
+        % figure
+    end
     % plot active as filled, passive as open
     % bump_colors = linspecer(4);
     % act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;

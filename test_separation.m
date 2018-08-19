@@ -1,5 +1,15 @@
 %% Get act vs pas
     [~,td] = getTDidx(trial_data,'result','R');
+
+    % Remove unsorted channels
+    keepers = (td(1).S1_unit_guide(:,2)~=0);
+    for trial = 1:length(td)
+        td(trial).S1_unit_guide = td(trial).S1_unit_guide(keepers,:);
+        td(trial).S1_spikes = td(trial).S1_spikes(:,keepers);
+    end
+
+    % remove low firing neurons
+    td = removeBadNeurons(td,struct('min_fr',0.1));
     
     td = getMoveOnsetAndPeak(td,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
     td = smoothSignals(td,struct('signals','markers'));
@@ -16,6 +26,11 @@
     [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
     td_pas = trimTD(td_pas,{'idx_bumpTime',0},{'idx_bumpTime',14});
     td_pas = binTD(td_pas,'average');
+
+    % even out sizes
+    minsize = min(length(td_act),length(td_pas));
+    td_act = td_act(1:minsize);
+    td_pas = td_pas(1:minsize);
     td = cat(2,td_act,td_pas);
 
 %% get splits on array
@@ -28,155 +43,163 @@
         array_signals = 1:length(td(1).S1_unit_guide);
     end
 
-%% Get models on data
+%% suppress getTDfields warning
+    getTDfields(td,'time');
+    onetime_warn = warning('query','last'); 
+    warning('off',onetime_warn.identifier)
+
+%% crossvalidate separabilities
+    num_folds = 5;
+    num_repeats = 20;
+    num_pcs = 5;
     hand_idx = 1:3;
     elbow_idx = 28:30;
-    % Hand kinematics model
-    [td,model_info] = getModel(td,struct('model_type','glm',...
-        'model_name','ext','in_signals',{{'markers',hand_idx;'marker_vel',hand_idx}},...
-        'out_signals',{{'S1_FR',array_signals}}));
-
-    % Hand forcekin model
-    [td,model_info] = getModel(td,struct('model_type','glm',...
-        'model_name','forcekin','in_signals',{{'markers',hand_idx;'marker_vel',hand_idx;'force','all'}},...
-        'out_signals',{{'S1_FR',array_signals}}));
-
-    % Hand/Elbow model
-    [td,model_info] = getModel(td,struct('model_type','glm',...
-        'model_name','hand_elbow','in_signals',{{'markers',[hand_idx elbow_idx];'marker_vel',[hand_idx elbow_idx]}},...
-        'out_signals',{{'S1_FR',array_signals}}));
-
-%% get PCA
-    td = sqrtTransform(td,'S1_FR');
-    % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
-    td = dimReduce(td,struct('signals',{{'S1_FR',array_signals}}));
     
-    td = sqrtTransform(td,'glm_ext');
-    % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
-    td = dimReduce(td,struct('signals',{{'glm_ext',array_signals}}));
-
-    td = sqrtTransform(td,'glm_forcekin');
-    % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
-    td = dimReduce(td,struct('signals',{{'glm_forcekin',array_signals}}));
-
-    td = sqrtTransform(td,'glm_hand_elbow');
-    % td = smoothSignals(td,struct('signals','S1_spikes','sqrt_transform',true));
-    td = dimReduce(td,struct('signals',{{'glm_hand_elbow',array_signals}}));
+    sep_true = zeros(num_repeats,num_folds);
+    sep_ext = zeros(num_repeats,num_folds);
+    sep_forcekin = zeros(num_repeats,num_folds);
+    sep_handelbow = zeros(num_repeats,num_folds);
     
-%% test separability
-    figure(1)
-    [actual_sep,actual_mdl] = test_sep(td,struct('signals',{{'S1_FR_pca'}},'do_plot',true));
-    title(['Actual separability - ' num2str(actual_sep)])
+    repeat_tic = tic;
+    fprintf('Starting %dx%d cross-validation at time: %f\n',num_repeats,num_folds,toc(repeat_tic))
+    for repeatnum = 1:num_repeats
+        foldidx = crossvalind('kfold',minsize,num_folds);
+        fold_tic = tic;
+        for foldnum = 1:num_folds
+            % do the foldy thing
+            train_idx = (foldidx~=foldnum);
+            td_train = cat(2,td_act(train_idx),td_pas(train_idx));
+            % % Hand kinematics model
+            % [~,ext_model_info] = getModel(td_train,struct('model_type','glm',...
+            %     'model_name','ext','in_signals',{{'pos','vel'}},...
+            %     'out_signals',{{'S1_FR',array_signals}}));
+            % % Hand forcekin model
+            % [~,forcekin_model_info] = getModel(td_train,struct('model_type','glm',...
+            %     'model_name','forcekin','in_signals',{{'pos','all';'vel','all';'force','all'}},...
+            %     'out_signals',{{'S1_FR',array_signals}}));
+            % Hand kinematics model
+            [~,ext_model_info] = getModel(td_train,struct('model_type','glm',...
+                'model_name','ext','in_signals',{{'markers',hand_idx;'marker_vel',hand_idx}},...
+                'out_signals',{{'S1_FR',array_signals}}));
+            % Hand forcekin model
+            [~,forcekin_model_info] = getModel(td_train,struct('model_type','glm',...
+                'model_name','forcekin','in_signals',{{'markers',hand_idx;'marker_vel',hand_idx;'force','all'}},...
+                'out_signals',{{'S1_FR',array_signals}}));
+            % Hand/Elbow model
+            [~,handelbow_model_info] = getModel(td_train,struct('model_type','glm',...
+                'model_name','handelbow','in_signals',{{'markers',[hand_idx elbow_idx];'marker_vel',[hand_idx elbow_idx]}},...
+                'out_signals',{{'S1_FR',array_signals}}));
     
-    % % then for directional separability/other view
-    % [~,td_act] = getTDidx(td,'ctrHoldBump',false);
-    % [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-    % signal_act = cat(1,td_act.S1_FR_pca);
-    % signal_pas = cat(1,td_pas.S1_FR_pca);
-    % % plot active as filled, passive as open
-    % bump_colors = linspecer(4);
-    % act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
-    % pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
-    % figure(2)
-    % hold all
-    % scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
-    % scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
-    % ylim = get(gca,'ylim');
-    % zlim = get(gca,'zlim');
-    % set(gca,'box','off','tickdir','out')
-    % axis equal
-    % axis off
-    % title 'directional sep'
-
-%% Try fabricating trial_data with linear models based on handle kinematics and force
-    figure(3)
-    [ext_sep,ext_mdl] = test_sep(td,struct('signals',{{'glm_ext_pca',1:4}},'do_plot',true));
-    title(['ext separability - ' num2str(ext_sep)])
-    figure(4)
-    [ext_sep,ext_mdl] = test_sep(td,struct('signals',{{'glm_ext_pca'}},'mdl',actual_mdl,'do_plot',true));
-    title(['ext w/ actual disc. separability - ' num2str(ext_sep)])
-
-    figure(5)
-    [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'glm_forcekin_pca',1:4}},'do_plot',true));
-    title(['Velforce separability - ' num2str(velforce_sep)])
-    figure(6)
-    [velforce_sep,velforce_mdl] = test_sep(td,struct('signals',{{'glm_forcekin_pca'}},'mdl',actual_mdl,'do_plot',true));
-    title(['Velforce w/ actual disc. separability - ' num2str(velforce_sep)])
+            % apply to test set
+            test_idx = (foldidx==foldnum);
+            td_test = cat(2,td_act(test_idx),td_pas(test_idx));
+            td_test = getModel(td_test,ext_model_info);
+            td_test = getModel(td_test,forcekin_model_info);
+            td_test = getModel(td_test,handelbow_model_info);
     
-    figure(7)
-    [hand_elbow_sep,hand_elbow_mdl] = test_sep(td,struct('signals',{{'glm_hand_elbow_pca',1:4}},'do_plot',true));
-    title(['hand_elbow separability - ' num2str(hand_elbow_sep)])
-    figure(8)
-    [hand_elbow_sep,hand_elbow_mdl] = test_sep(td,struct('signals',{{'glm_hand_elbow_pca'}},'mdl',actual_mdl,'do_plot',true));
-    title(['hand_elbow w/ actual disc. separability - ' num2str(hand_elbow_sep)])
-
-    % % then for directional separability/other view
-    % [~,td_act] = getTDidx(td,'ctrHoldBump',false);
-    % [~,td_pas] = getTDidx(td,'ctrHoldBump',true);
-    % signal_act = cat(1,td_act.glm_ext_pca);
-    % signal_pas = cat(1,td_pas.glm_ext_pca);
-    % % plot active as filled, passive as open
-    % bump_colors = linspecer(4);
-    % act_dir_idx = floor(cat(1,td_act.target_direction)/(pi/2))+1;
-    % pas_dir_idx = floor(cat(1,td_pas.bumpDir)/90)+1;
-    % subplot(2,3,2)
-    % hold all
-    % scatter3(signal_act(:,1),signal_act(:,2),signal_act(:,3),50,bump_colors(act_dir_idx,:),'filled')
-    % scatter3(signal_pas(:,1),signal_pas(:,2),signal_pas(:,3),100,bump_colors(pas_dir_idx,:),'o','linewidth',2)
-    % ylim = get(gca,'ylim');
-    % zlim = get(gca,'zlim');
-    % set(gca,'box','off','tickdir','out')
-    % axis equal
-    % axis off
-
-%% get boostrapped separability values
-    % get correlated noise models
+            % get pcas
+            td_train = sqrtTransform(td_train,'S1_FR');
+            [td_train,pca_info] = dimReduce(td_train,struct('signals',{{'S1_FR',array_signals}}));
     
-    % bootstrap!
-    n_boot = 1000;
-    % use actual model for this
-    bootsep_true = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'S1_FR_pca'}},'mdl',actual_mdl)),td');
+            td_test = sqrtTransform(td_test,'S1_FR');
+            td_test = sqrtTransform(td_test,'glm_ext');
+            td_test = sqrtTransform(td_test,'glm_forcekin');
+            td_test = sqrtTransform(td_test,'glm_handelbow');
     
-    bootsep_ext = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'glm_ext_pca',1:4}})),td');
-    % bootsep_ext_actual = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'glm_ext_pca'}},'mdl',actual_mdl)),td');
+            pca_info_ext = pca_info;
+            pca_info_ext.signals = {'glm_ext',array_signals};
+            pca_info_ext.recenter_for_proj = true;
+            pca_info_forcekin = pca_info;
+            pca_info_forcekin.signals = {'glm_forcekin',array_signals};
+            pca_info_forcekin.recenter_for_proj = true;
+            pca_info_handelbow = pca_info;
+            pca_info_handelbow.signals = {'glm_handelbow',array_signals};
+            pca_info_handelbow.recenter_for_proj = true;
     
-    bootsep_velforce = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'glm_forcekin_pca',1:4}})),td');
-    % bootsep_velforce_actual = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'glm_forcekin_pca'}},'mdl',actual_mdl)),td');
-
-    bootsep_handelbow = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'glm_hand_elbow_pca',1:4}})),td');
-    % bootsep_handelbow_actual = bootstrp(n_boot,@(x) test_sep(x',struct('signals',{{'glm_hand_elbow_pca'}},'mdl',actual_mdl)),td');
-
-    % get separability CIs
-    sep_true = prctile(bootsep_true,[2.5 97.5]);
+            td_test = dimReduce(td_test,pca_info);
+            td_test = dimReduce(td_test,pca_info_ext);
+            td_test = dimReduce(td_test,pca_info_forcekin);
+            td_test = dimReduce(td_test,pca_info_handelbow);
     
-    sep_ext = prctile(bootsep_ext,[2.5 97.5]);
-    % sep_ext_actual = prctile(bootsep_ext_actual,[2.5 97.5]);
+            % get LDA models
+            [~,actual_lda] = test_sep(td_train,struct('signals',{{'S1_FR_pca',1:num_pcs}}));
+            % [~,ext_lda] = test_sep(td_train,struct('signals',{{'glm_ext_pca',1:5}}));
+            % [~,forcekin_lda] = test_sep(td_train,struct('signals',{{'glm_forcekin_pca',1:5}}));
+            % [~,handelbow_lda] = test_sep(td_train,struct('signals',{{'glm_handelbow_pca',1:5}}));
     
-    sep_velforce = prctile(bootsep_velforce,[2.5 97.5]);
-    % sep_velforce_actual = prctile(bootsep_velforce_actual,[2.5 97.5]);
+            % check LDA models
+            if repeatnum==num_repeats
+                do_plot = true;
+                if foldnum==1
+                    h1 = figure(1);
+                    h2 = figure(2);
+                    h3 = figure(3);
+                    h4 = figure(4);
+                end
+            else
+                do_plot = false;
+                h1 = [];
+                h2 = [];
+                h3 = [];
+                h4 = [];
+            end
+            sep_true(repeatnum,foldnum) = test_sep(td_test,struct('signals',{{'S1_FR_pca',1:num_pcs}},'mdl',actual_lda,'do_plot',do_plot,'fig_handle',h1));
+            sep_ext(repeatnum,foldnum) = test_sep(td_test,struct('signals',{{'glm_ext_pca',1:num_pcs}},'mdl',actual_lda,'do_plot',do_plot,'fig_handle',h2));
+            sep_forcekin(repeatnum,foldnum) = test_sep(td_test,struct('signals',{{'glm_forcekin_pca',1:num_pcs}},'mdl',actual_lda,'do_plot',do_plot,'fig_handle',h3));
+            sep_handelbow(repeatnum,foldnum) = test_sep(td_test,struct('signals',{{'glm_handelbow_pca',1:num_pcs}},'mdl',actual_lda,'do_plot',do_plot,'fig_handle',h4));
+    
+            fprintf('\tEvaluated fold %d at time: %f\n',foldnum,toc(fold_tic))
+        end
+        fprintf('Evaluated repeat %d at time: %f\n',repeatnum,toc(repeat_tic))
+    end
 
-    sep_handelbow = prctile(bootsep_handelbow,[2.5 97.5]);
-    % sep_handelbow_actual = prctile(bootsep_handelbow_actual,[2.5 97.5]);
+%% package results
+    % get one separability table
+    sep_true = sep_true(:);
+    sep_ext = sep_ext(:);
+    sep_forcekin = sep_forcekin(:);
+    sep_handelbow = sep_handelbow(:);
 
-    % plot separabilities with CIs
-    figure('DefaultAxesFontSize',18)
-    barh([mean(bootsep_true) mean(bootsep_ext)...
-        mean(bootsep_velforce)...
-        mean(bootsep_handelbow)],'edgecolor','none')
-    % barh(fliplr([mean(bootsep_true) mean(bootsep_ext) mean(bootsep_ext_actual) ...
-    %     mean(bootsep_velforce) mean(bootsep_velforce_actual) ...
-    %     mean(bootsep_handelbow) mean(bootsep_handelbow_actual)]))
-    hold on
-    plot([sep_true' sep_ext'...
-        sep_velforce'...
-        sep_handelbow'],[1:4;1:4],'-k','linewidth',2)
-    % plot(fliplr([sep_true' sep_ext' sep_ext_actual' ...
-    %     sep_velforce' sep_velforce_actual' ...
-    %     sep_handelbow' sep_handelbow_actual']),[1:7;1:7],'-k','linewidth',2)
-    plot([0.5 0.5],[0 5],'--k','linewidth',2)
-    plot([1 1],[0 5],'--k','linewidth',2)
-    set(gca,'box','off','tickdir','out','yticklabel',{'Actual','Hand Kinematics','Handle Kinematics+Force',...
-        'Hand/Elbow Kinematics'},...
-        'xtick',[0 0.5 1],'xticklabel',{'','50%','100%'})
-    axis ij
+    seps = table(sep_true,sep_ext,sep_forcekin,sep_handelbow,...
+        'VariableNames',{'true','ext','forcekin','handelbow'});
 
+%% bar plot for separabilities of models
+    % bar colors
+    bar_colors(1,:) = [0.5 0.5 0.5];
+    bar_colors(2,:) = [247, 148, 30]/255;
+    bar_colors(3,:) = [247, 192, 30]/255;
+    bar_colors(4,:) = [193, 25, 47]/255;
+
+    % make plot
+    datadir = '~/Projects/limblab/data-td/ForceKin/Results/separability';
+    filenames = {'Han_20170203_actpasSeps_run20180818.mat','Chips_20170913_actpasSeps_run20180818.mat'};
+    num_monks = length(filenames);
+    monk_x = (2:3:((num_monks-1)*3+2))/10;
+    template_x = linspace(-0.5,0.5,4)/10;
+    model_spacing = mode(diff(template_x));
+    figure('defaultaxesfontsize',18)
+    for monkeynum = 1:num_monks
+        load(fullfile(datadir,filenames{monkeynum}))
+
+        % calculate stats
+        mean_seps = mean(seps{:,:});
+        var_seps = var(seps{:,:});
+        correction = 1/(num_folds*num_repeats) + 1/(num_folds-1);
+        std_err_seps = sqrt(var_seps*correction);
+
+        for modelnum = 1:length(mean_seps)
+            xval = monk_x(monkeynum) + template_x(modelnum);
+            bar(xval,mean_seps(modelnum),model_spacing,'facecolor',bar_colors(modelnum,:),'edgecolor','none')
+            hold on
+            plot([xval xval],[mean_seps(modelnum)-std_err_seps(modelnum) mean_seps(modelnum)+std_err_seps(modelnum)],'k','linewidth',3)
+        end
+    end
+    plot([0 monk_x(end)+0.2],[0.5 0.5],'--k','linewidth',2)
+    plot([0 monk_x(end)+0.2],[1 1],'--k','linewidth',2)
+    set(gca,'box','off','tickdir','out',...
+        'xtick',monk_x,'xticklabel',filenames,'xlim',[0 monk_x(end)+0.2],...
+        'ytick',[0 0.5 1],'yticklabel',{'','50%','100%'},...
+        'ticklabelinterpreter','none')
+
+%% Turn warnings back on
+    warning('on',onetime_warn.identifier)
