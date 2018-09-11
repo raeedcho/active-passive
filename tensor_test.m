@@ -79,10 +79,10 @@
         M_behave = cp_als(behave_tensor,num_factors,'maxiters',200,'printitn',10);
 
         neural_data = cat(3,td.S1_spikes); % dimensions are timepoints x neurons x trials
-        % neural_data = neural_data-repmat(mean(mean(neural_data,3),1),size(neural_data,1),1,size(neural_data,3));
+        neural_data = neural_data-repmat(mean(mean(neural_data,3),1),size(neural_data,1),1,size(neural_data,3));
         neural_tensor = tensor(neural_data);
-        % M_neural = cp_als(neural_tensor,num_factors,'maxiters',300,'printitn',10);
-        M_neural = cp_apr(neural_tensor,num_factors,'maxiters',300,'printitn',10);
+        M_neural = cp_als(neural_tensor,num_factors,'maxiters',300,'printitn',10);
+        %M_neural = cp_apr(neural_tensor,num_factors,'maxiters',300,'printitn',10);
 
     % color by direction
         num_colors = 4;
