@@ -47,17 +47,23 @@
     td_act = trialAverage(td_act,'target_direction',struct('do_stretch',true,'num_samp',31));
     td_pas = trialAverage(td_pas,'bumpDir');
 
+%% trial match
+    % minsize = min(length(td_act),length(td_pas));
+    % td_act = td_act(1:minsize);
+    % td_pas = td_pas(1:minsize);
+
+    % td_act = stretchSignals(td_act,struct('num_samp',31));
+
 %% Create data struct for tangling code
     S1_tangle_struct = struct('A',{td_act.S1_spikes});
     EMG_tangle_struct = struct('A',{td_act.emg});
-    [Q_S1_act,out_S1_act] = tangleAnalysis(S1_tangle_struct,0.01,'softenNorm',5,'timeStep',1);
-    [Q_EMG_act,out_EMG_act] = tangleAnalysis(EMG_tangle_struct,0.01,'softenNorm',0,'timeStep',1);
+    [Q_S1_act,out_S1_act] = tangleAnalysis(S1_tangle_struct,0.01,'softenNorm',5,'timeStep',20);
+    [Q_EMG_act,out_EMG_act] = tangleAnalysis(EMG_tangle_struct,0.01,'softenNorm',0,'timeStep',20);
 
     S1_tangle_struct = struct('A',{td_pas.S1_spikes});
     EMG_tangle_struct = struct('A',{td_pas.emg});
-    [Q_S1_pas,out_S1_pas] = tangleAnalysis(S1_tangle_struct,0.01,'softenNorm',5,'timeStep',1);
-    [Q_EMG_pas,out_EMG_pas] = tangleAnalysis(EMG_tangle_struct,0.01,'softenNorm',0,'timeStep',1);
-
+    [Q_S1_pas,out_S1_pas] = tangleAnalysis(S1_tangle_struct,0.01,'softenNorm',5,'timeStep',20);
+    [Q_EMG_pas,out_EMG_pas] = tangleAnalysis(EMG_tangle_struct,0.01,'softenNorm',0,'timeStep',20);
 
 %% Scatter plot...
     lims = max([Q_S1_pas;Q_S1_act]);
@@ -67,12 +73,24 @@
     plot([0 lims],[0 lims],'--k','linewidth',2)
     set(gca,'box','off','tickdir','out')
     axis equal
-    axis([0 lims 0 lims])
+    % axis([0 lims 0 lims])
     xlabel 'Tangling during passive'
     ylabel 'Tangling during active'
 
+%% Active vs. EMG?
+    lims = max([Q_EMG_act;Q_S1_act]);
+    figure
+    scatter(Q_EMG_act,Q_S1_act,[],'k','filled')
+    hold on
+    plot([0 lims],[0 lims],'--k','linewidth',2)
+    set(gca,'box','off','tickdir','out')
+    axis equal
+    % axis([0 lims 0 lims])
+    xlabel 'EMG Tangling during active'
+    ylabel 'S1 Tangling during active'
+    
 %% motor cortex...
-    td_motor = load('~/Projects/limblab/data-td/MattData/Chewie_CO_FF_2016-10-07.mat','trial_data');
+    td_motor = load('~/codebase/limblab/data-td/MattData/Chewie_CO_FF_2016-10-07.mat','trial_data');
     td_motor = td_motor.trial_data;
     [~,td_motor_bl] = getTDidx(td_motor,'result','R','epoch','BL');
     td_motor_bl = getMoveOnsetAndPeak(td_motor_bl,struct('start_idx','idx_goCueTime','end_idx','idx_endTime','method','peak','min_ds',1));
@@ -118,3 +136,4 @@
     axis([0 lims 0 lims])
     xlabel 'M1 Tangle'
     ylabel 'PMd Tangle'
+
