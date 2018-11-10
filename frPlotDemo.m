@@ -2,6 +2,9 @@
     % ...
     load data/Han_20171116_COactpas_TDjoined.mat
 
+    % Run your models or whatever here, and add the resulting signals to trial_data
+    % trial_data.lfads_S1 = ...
+
 %% Process trial data
     % split into trials
     td = splitTD(...
@@ -73,7 +76,8 @@
 %% make the figure
     cm_viridis = viridis(200);
 
-    signal_name = 'S1_spikes';
+    signal_name = 'S1_spikes'; % or 'lfads_S1'...
+    
     figure('defaultaxesfontsize',18)
     binvec = (0:num_bins_before:num_bins_before*3);
     timevec = (binvec-num_bins_before)*td(1).bin_size*1000;
